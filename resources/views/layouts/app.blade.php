@@ -49,7 +49,7 @@
               <li class="nav-item"><a class="nav-link" href="{{ route('entrees.index') }}">Entrées</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('sorties.index') }}">Sorties</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('facturations.index') }}">Facturation</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('paiements.index') }}">Paiements</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ route('caisse.index') }}">Caisse</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('clients.index') }}">Clients</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('vehicules.index') }}">Véhicules</a></li>
               <li class="nav-item dropdown">
