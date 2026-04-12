@@ -64,4 +64,18 @@ class VehiculeController extends Controller
         $vehicule->delete();
         return redirect()->route('vehicules.index')->with('success','Vehicule deleted');
     }
+
+    // JSON endpoint to find a vehicule by plaque (plate)
+    public function findByPlaque(Request $request)
+    {
+        $plaque = $request->query('plaque');
+        if (empty($plaque)) {
+            return response()->json(['found' => false]);
+        }
+        $vehicule = Vehicule::with('client')->where('plaque', $plaque)->first();
+        if (!$vehicule) {
+            return response()->json(['found' => false]);
+        }
+        return response()->json(['found' => true, 'vehicule' => $vehicule]);
+    }
 }

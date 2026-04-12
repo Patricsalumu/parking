@@ -31,8 +31,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () { return view('dashboard'); })->name('dashboard');
 
     Route::resource('clients', ClientController::class);
+    // Explicit lookup route must come before the resource route so it is not
+    // captured by the resource's `vehicules/{vehicule}` pattern.
+    Route::get('vehicules/find-by-plaque', [VehiculeController::class,'findByPlaque'])->name('vehicules.findByPlaque');
     Route::resource('vehicules', VehiculeController::class);
+    // Entrées resource and exports
+    Route::get('entrees/export/csv', [EntreeController::class,'exportCsv'])->name('entrees.export.csv');
+    Route::get('entrees/export/pdf', [EntreeController::class,'exportPdf'])->name('entrees.export.pdf');
     Route::resource('entrees', EntreeController::class);
+    Route::get('entrees/{entree}/print', [EntreeController::class,'print'])->name('entrees.print');
     Route::get('facturations', [FacturationController::class,'index'])->name('facturations.index');
     Route::get('facturations/{facturation}', [FacturationController::class,'show'])->name('facturations.show');
     Route::post('facturations/create-from-entree', [FacturationController::class,'createFromEntree'])->name('facturations.createFromEntree');

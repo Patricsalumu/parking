@@ -11,8 +11,24 @@ class Entree extends Model
     use SoftDeletes;
 
     protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','observation','qr_code'];
-
     protected $dates = ['date_entree','date_sortie'];
+    protected $casts = [
+        'date_entree' => 'datetime',
+        'date_sortie' => 'datetime',
+    ];
+
+    // Ensure we always return Carbon instances even if DB contains strings
+    public function getDateEntreeAttribute($value)
+    {
+        if (empty($value)) return null;
+        return $value instanceof Carbon ? $value : Carbon::parse($value);
+    }
+
+    public function getDateSortieAttribute($value)
+    {
+        if (empty($value)) return null;
+        return $value instanceof Carbon ? $value : Carbon::parse($value);
+    }
 
     public function user()
     {

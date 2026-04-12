@@ -37,7 +37,11 @@ class FacturationController extends Controller
         }
         $request->validate(['entree_id' => 'required|exists:entrees,id','categorie_id' => 'required|exists:categories,id']);
         $entree = Entree::findOrFail($request->entree_id);
-        if (!$entree->date_sortie) return back()->withErrors(['entree' => 'La sortie doit être renseignée avant la facturation']);
+        // If sortie is not set, set it to now automatically before facturation
+        if (!$entree->date_sortie) {
+            $entree->date_sortie = Carbon::now();
+            $entree->save();
+        }
 
         $cat = Categorie::find($request->categorie_id);
         $days = $entree->durationInDays();
