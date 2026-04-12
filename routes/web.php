@@ -67,4 +67,5 @@ Route::middleware(['auth'])->group(function () {
     // classes & comptes resources
     Route::resource('classes', \App\Http\Controllers\ClasseController::class);
     Route::resource('comptes', \App\Http\Controllers\CompteController::class);
+    Route::resource('journal_comptes', \App\Http\Controllers\JournalCompteController::class)->only(['index','show']);
 });

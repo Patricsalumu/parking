@@ -35,7 +35,8 @@ class UserController extends Controller
 
     public function create()
     {
-        return view('users.create');
+        $comptes = \App\Models\Compte::orderBy('numero')->get();
+        return view('users.create', compact('comptes'));
     }
 
     public function store(Request $request)
@@ -46,6 +47,7 @@ class UserController extends Controller
             'password' => 'required|confirmed|min:6',
             'role' => 'required|string',
             'blocked' => 'sometimes|nullable|boolean',
+            'caisse_compte_id' => 'nullable|exists:comptes,id',
         ]);
         $data['password'] = Hash::make($data['password']);
         $data['blocked'] = $request->has('blocked') ? 1 : 0;
@@ -67,7 +69,8 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        return view('users.edit', compact('user'));
+        $comptes = \App\Models\Compte::orderBy('numero')->get();
+        return view('users.edit', compact('user','comptes'));
     }
 
     public function update(Request $request, User $user)
@@ -77,6 +80,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,'.$user->id,
             'role' => 'required|string',
             'blocked' => 'sometimes|nullable|boolean',
+            'caisse_compte_id' => 'nullable|exists:comptes,id',
         ]);
         if ($request->filled('password')) {
             $request->validate(['password' => 'confirmed|min:6']);

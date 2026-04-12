@@ -19,8 +19,13 @@ class User extends Authenticatable
         'password',
         'role',
         'blocked',
+        'caisse_compte_id',
     ];
 
+    public function caisseCompte()
+    {
+        return $this->belongsTo(\App\Models\Compte::class, 'caisse_compte_id');
+    }
     protected $hidden = [
         'password',
         'remember_token',

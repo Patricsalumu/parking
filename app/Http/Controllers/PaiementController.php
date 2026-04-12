@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Paiement;
 use App\Models\Facturation;
 use Carbon\Carbon;
+use App\Models\JournalCompte;
+use App\Models\Compte;
 
 class PaiementController extends Controller
 {
@@ -58,6 +60,23 @@ class PaiementController extends Controller
             $fact->date_paiement = $paiement->date_paiement;
         }
         $fact->save();
+
+        // Create accounting entry for the payment: debit caisse (user's caisse_compte_id), credit client (411000)
+        try {
+            $clientCompte = Compte::where('numero','411000')->first();
+            $userCaisseId = auth()->user()->caisse_compte_id;
+            if ($clientCompte && $userCaisseId) {
+                JournalCompte::create([
+                    'libelle' => 'Paiement facture #'.$fact->id,
+                    'montant' => $paiement->montant,
+                    'date' => $paiement->date_paiement->toDateString(),
+                    'compte_debit_id' => $userCaisseId,
+                    'compte_credit_id' => $clientCompte->id,
+                ]);
+            }
+        } catch(\Exception $e) {
+            \Log::error('Accounting entry failed for paiement '.$paiement->id.': '.$e->getMessage());
+        }
 
         return redirect()->route('paiements.index')->with('success','Paiement enregistré');
     }

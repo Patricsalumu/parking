@@ -11,6 +11,15 @@
   <div class="mb-3"><label>Confirmer le mot de passe</label><input name="password_confirmation" type="password" class="form-control"></div>
   <div class="mb-3"><label>Rôle</label><select name="role" class="form-control"><option value="user" {{ old('role')=='user'? 'selected':'' }}>user</option><option value="superadmin" {{ old('role')=='superadmin'? 'selected':'' }}>superadmin</option></select></div>
 
+  <div class="mb-3"><label>Compte caisse (optionnel)</label>
+    <select name="caisse_compte_id" class="form-control">
+      <option value="">-- Aucun --</option>
+      @foreach($comptes as $c)
+        <option value="{{ $c->id }}" {{ old('caisse_compte_id') == $c->id ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>
+      @endforeach
+    </select>
+  </div>
+
   <h5>Permissions d'accès</h5>
   <div class="mb-3 form-check">
     <input type="checkbox" class="form-check-input" id="acces_reduction" name="acces[reduction]" value="1" {{ old('acces.reduction') ? 'checked' : '' }}>

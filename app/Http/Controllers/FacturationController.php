@@ -7,6 +7,8 @@ use App\Models\Facturation;
 use App\Models\Entree;
 use App\Models\Categorie;
 use Carbon\Carbon;
+use App\Models\JournalCompte;
+use App\Models\Compte;
 
 class FacturationController extends Controller
 {
@@ -198,6 +200,24 @@ class FacturationController extends Controller
             'reduction' => $reduction,
             'date_paiement' => $datePaiement,
         ]);
+
+        // Create basic accounting journal entry: debit client (411000), credit product (parking 701000)
+        try {
+            $clientCompte = Compte::where('numero','411000')->first();
+            $produitCompte = Compte::where('numero','701000')->first();
+            if ($clientCompte && $produitCompte) {
+                JournalCompte::create([
+                    'libelle' => 'Facture #'.$fact->id,
+                    'montant' => $fact->montant_total,
+                    'date' => Carbon::now()->toDateString(),
+                    'compte_debit_id' => $clientCompte->id,
+                    'compte_credit_id' => $produitCompte->id,
+                ]);
+            }
+        } catch(\Exception $e) {
+            // don't break user flow if accounting fails
+            \Log::error('Accounting entry failed for facture '.$fact->id.': '.$e->getMessage());
+        }
 
         return redirect()->route('facturations.show', $fact->id)->with('success','Facturation créée');
     }

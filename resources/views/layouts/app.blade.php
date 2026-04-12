@@ -52,6 +52,16 @@
               <li class="nav-item"><a class="nav-link" href="{{ route('paiements.index') }}">Paiements</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('clients.index') }}">Clients</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('vehicules.index') }}">Véhicules</a></li>
+              <li class="nav-item dropdown">
+                <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#comptaMenu">Comptabilité</a>
+                <div class="collapse" id="comptaMenu">
+                  <ul class="nav flex-column ms-2">
+                    <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.index') ?? '#' }}">Journal</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('comptes.index') }}">Comptes</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('classes.index') }}">Classes</a></li>
+                  </ul>
+                </div>
+              </li>
               @if(auth()->user() && auth()->user()->role === 'superadmin')
                 <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Users</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('categories.index') }}">Catégories</a></li>
