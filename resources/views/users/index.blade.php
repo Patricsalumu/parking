@@ -2,11 +2,17 @@
 
 @section('content')
 <div class="d-flex justify-content-between mb-3">
-  <h3>Users</h3>
-  <a href="#" class="btn btn-primary">Create</a>
+  <h3>Utilisateurs</h3>
+  <div class="d-flex">
+    <form method="GET" action="{{ route('users.index') }}" class="me-2 d-flex">
+      <input name="q" class="form-control form-control-sm" placeholder="Chercher par nom ou email" value="{{ request('q') }}">
+      <button class="btn btn-sm btn-outline-secondary ms-2">Chercher</button>
+    </form>
+    <a href="{{ route('users.create') }}" class="btn btn-primary">Créer</a>
+  </div>
 </div>
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Nom</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+  <thead><tr><th>ID</th><th>Nom</th><th>Email</th><th>Rôle</th><th>Actions</th></tr></thead>
   <tbody>
     @foreach($users as $u)
       <tr>
@@ -15,12 +21,12 @@
         <td>{{ $u->email }}</td>
         <td>{{ $u->role }}</td>
         <td>
-          <a href="{{ route('users.edit', $u) }}" class="btn btn-sm btn-warning">Edit</a>
-          <form action="{{ route('users.destroy', $u) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Delete</button></form>
+          <a href="{{ route('users.edit', $u) }}" class="btn btn-sm btn-warning">Modifier</a>
+          <form action="{{ route('users.destroy', $u) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Supprimer</button></form>
         </td>
       </tr>
     @endforeach
   </tbody>
 </table>
-{{ $users->links() }}
+{{ $users->appends(request()->query())->links() }}
 @endsection
