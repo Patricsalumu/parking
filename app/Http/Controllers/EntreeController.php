@@ -85,7 +85,7 @@ class EntreeController extends Controller
             foreach ($rows as $r) {
                 fputcsv($out, [
                     $r->id,
-                    $r->date_entree ? $r->date_entree->format('Y-m-d H:i') : '',
+                    $r->date_entree ? \Carbon\Carbon::parse($r->date_entree)->format('Y-m-d H:i') : '',
                     $r->vehicule?->plaque,
                     $r->vehicule?->compagnie,
                     $r->client?->nom,

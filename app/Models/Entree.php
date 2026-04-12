@@ -10,7 +10,7 @@ class Entree extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','observation','qr_code'];
+    protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','sortie_user_id','observation','qr_code'];
     protected $dates = ['date_entree','date_sortie'];
     protected $casts = [
         'date_entree' => 'datetime',
@@ -48,6 +48,11 @@ class Entree extends Model
     public function facturation()
     {
         return $this->hasOne(Facturation::class);
+    }
+
+    public function sortieUser()
+    {
+        return $this->belongsTo(User::class, 'sortie_user_id');
     }
 
     public function durationInDays()

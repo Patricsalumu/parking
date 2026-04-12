@@ -34,7 +34,7 @@
   <div class="tbl" style="text-align:center; margin-top:6px">
     <table style="margin:0 auto;">
       <tr><td class="small">Bon d'entrée N°</td><td class="small">: {{ $entree->id }}</td></tr>
-      <tr><td class="small">Date d'entrée</td><td class="small">: {{ $entree->date_entree ? $entree->date_entree->format('Y-m-d H:i') : '' }}</td></tr>
+      <tr><td class="small">Date d'entrée</td><td class="small">: {{ $entree->date_entree ? \Carbon\Carbon::parse($entree->date_entree)->format('Y-m-d H:i') : '' }}</td></tr>
       <tr><td class="small">Compagnie</td><td class="small">: {{ $entree->vehicule?->compagnie }}</td></tr>
       <tr><td class="small">Plaque</td><td class="small">: {{ $entree->vehicule?->plaque }}</td></tr>
       <tr><td class="small">Enregistré par</td><td class="small">: {{ $entree->user?->name }}</td></tr>

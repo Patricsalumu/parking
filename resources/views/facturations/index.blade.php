@@ -29,16 +29,18 @@
   </div>
 </div>
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Entrée</th><th>Vehicule</th><th>Utilisateur</th><th>Total</th><th>Payé</th><th>Reste</th><th>Actions</th></tr></thead>
+  <thead><tr><th>ID</th><th>Entrée</th><th>Vehicule</th><th>Catégorie</th><th>Duree (jours)</th><th>Utilisateur</th><th>Total</th><th>Payé</th><th>Reste</th><th>Actions</th></tr></thead>
   <tbody>
     @foreach($facturations as $f)
       <tr>
         <td>{{ $f->id }}</td>
         <td>{{ $f->entree_id }}</td>
         <td>{{ $f->entree->vehicule?->plaque }}</td>
+        <td>{{ $f->categorie?->nom ?? 'N/C' }}</td>
+        <td>{{ $f->duree ?? 'N/A' }}</td>
         <td>{{ $f->user?->name ?? $f->entree->user?->name }}</td>
-        <td>{{ $f->montant_total }}</td>
-        <td>{{ $f->montant_paye }}</td>
+        <td>{{ number_format($f->montant_total,2) }}</td>
+        <td>{{ number_format($f->montant_paye ?? 0,2) }}</td>
         <td>{{ number_format(($f->montant_total - ($f->montant_paye ?? 0)),2) }}</td>
         <td>
           <button class="btn btn-sm btn-success btn-pay" data-id="{{ $f->id }}" data-balance="{{ $f->montant_total - $f->montant_paye }}">Payer</button>

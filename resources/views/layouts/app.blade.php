@@ -2,6 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Parking ERP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -46,7 +47,7 @@
             </div>
             <ul class="nav flex-column">
               <li class="nav-item"><a class="nav-link" href="{{ route('entrees.index') }}">Entrées</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('entrees.index') }}">Sorties</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ route('sorties.index') }}">Sorties</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('facturations.index') }}">Facturation</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('paiements.index') }}">Paiements</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('clients.index') }}">Clients</a></li>

@@ -161,14 +161,15 @@ class FacturationController extends Controller
         if (\App\Models\Facturation::where('entree_id', $entree->id)->exists()) {
             return back()->with('error','Une facture existe déjà pour cette entrée.');
         }
-        // If sortie is not set, set it to now automatically before facturation
-        if (!$entree->date_sortie) {
-            $entree->date_sortie = Carbon::now();
-            $entree->save();
-        }
+        // Note: do NOT set entree->date_sortie here. Sortie must be performed from the Sorties page.
 
         $cat = Categorie::find($request->categorie_id);
-        $days = $entree->durationInDays();
+        // compute days: if sortie missing use now
+        $start = $entree->date_entree;
+        $end = $entree->date_sortie ?? Carbon::now();
+        $hours = $end->diffInHours($start);
+        $days = (int) ceil($hours / 24);
+        $days = max(1, $days);
         $unit = $cat->prix_par_24h ?? 0;
         $total = $days * $unit;
         // apply reduction only if allowed (superadmin or acces->reduction)

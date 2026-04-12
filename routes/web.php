@@ -40,6 +40,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('entrees/export/pdf', [EntreeController::class,'exportPdf'])->name('entrees.export.pdf');
     Route::resource('entrees', EntreeController::class);
     Route::get('entrees/{entree}/print', [EntreeController::class,'print'])->name('entrees.print');
+    // Sorties (separate views for exiting vehicles)
+    Route::get('sorties', [\App\Http\Controllers\SortieController::class,'index'])->name('sorties.index');
+    Route::get('sorties/{entree}', [\App\Http\Controllers\SortieController::class,'show'])->name('sorties.show');
+    Route::put('sorties/{entree}', [\App\Http\Controllers\SortieController::class,'update'])->name('sorties.update');
     Route::get('facturations', [FacturationController::class,'index'])->name('facturations.index');
     Route::get('facturations/export/csv', [FacturationController::class,'exportCsv'])->name('facturations.export.csv');
     Route::get('facturations/export/pdf', [FacturationController::class,'exportPdf'])->name('facturations.export.pdf');

@@ -8,7 +8,7 @@
       @foreach($rows as $r)
         <tr>
           <td>{{ $r->id }}</td>
-          <td>{{ $r->date_entree ? $r->date_entree->format('Y-m-d H:i') : '' }}</td>
+          <td>{{ $r->date_entree ? \Carbon\Carbon::parse($r->date_entree)->format('Y-m-d H:i') : '' }}</td>
           <td>{{ $r->vehicule?->plaque }}</td>
           <td>{{ $r->vehicule?->compagnie }}</td>
           <td>{{ $r->client?->nom }}</td>

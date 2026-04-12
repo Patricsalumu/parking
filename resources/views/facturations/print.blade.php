@@ -6,7 +6,7 @@
   <p style="text-align:center">{{ $entreprise->slogan ?? '' }}</p>
   <hr>
   <h5>Facture #{{ $facturation->id }}</h5>
-  <p><strong>Date:</strong> {{ $facturation->created_at->format('Y-m-d H:i') }}</p>
+  <p><strong>Date:</strong> {{ $facturation->created_at ? \Carbon\Carbon::parse($facturation->created_at)->format('Y-m-d H:i') : '' }}</p>
   <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>
   <p><strong>Plaque:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
   <p><strong>Client:</strong> {{ $facturation->entree->client?->nom }}</p>

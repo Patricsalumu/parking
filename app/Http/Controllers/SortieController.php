@@ -1,0 +1,96 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Entree;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
+
+class SortieController extends Controller
+{
+    public function __construct()
+    {
+        $this->middleware('auth');
+    }
+
+    public function index()
+    {
+        // show all entries (exited or not) for the given date range (default today)
+        $query = Entree::with('vehicule','client','user','facturation');
+
+        if ($q = request()->input('q')) {
+            $query->whereHas('vehicule', function($qv) use ($q){
+                $qv->where('plaque','like','%'.$q.'%');
+            })->orWhereHas('client', function($qc) use ($q){
+                $qc->where('nom','like','%'.$q.'%');
+            })->orWhereHas('user', function($qu) use ($q){
+                $qu->where('name','like','%'.$q.'%');
+            });
+        }
+
+        $start = request()->input('start_date', now()->format('Y-m-d'));
+        $end = request()->input('end_date', now()->format('Y-m-d'));
+        if ($start) $query->whereDate('date_entree', '>=', $start);
+        if ($end) $query->whereDate('date_entree', '<=', $end);
+
+        $entrees = $query->orderBy('date_entree','desc')->paginate(20);
+        $entrees->appends(request()->all());
+        return view('sorties.index', compact('entrees','start','end'));
+    }
+
+    public function show(Request $request, Entree $entree)
+    {
+        $entree->load('vehicule','client','user','facturation.categorie');
+        $fact = $entree->facturation;
+        $canExit = false;
+        if ($fact) {
+            $total = $fact->montant_total ?? 0;
+            $paye = $fact->montant_paye ?? 0;
+            $canExit = ($paye >= $total);
+        }
+        // Return fragment for AJAX requests (modal load). If opened directly, render full page.
+        if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
+            return view('sorties.show', compact('entree','fact','canExit'));
+        }
+        return view('sorties.full', compact('entree','fact','canExit'));
+    }
+
+    public function update(Request $request, Entree $entree)
+    {
+        // check access
+        if (!in_array(auth()->user()->role, ['superadmin'])) {
+            $acc = auth()->user()->acces;
+            if (!$acc || !$acc->sortie) {
+                abort(403,'Unauthorized');
+            }
+        }
+
+        $entree->load('facturation');
+        $fact = $entree->facturation;
+        if (!$fact) {
+            return back()->with('error','Impossible de faire la sortie: facture introuvable pour cette entrée.');
+        }
+        $total = $fact->montant_total ?? 0;
+        $paye = $fact->montant_paye ?? 0;
+        if ($paye < $total) {
+            return back()->with('error','Impossible de faire la sortie: la facture n\'est pas encore apurée.');
+        }
+        // require payment date to exist (paid and recorded)
+        if (empty($fact->date_paiement)) {
+            return back()->with('error','Impossible de faire la sortie: la date de paiement n\'est pas enregistrée.');
+        }
+
+        $entree->date_sortie = Carbon::now();
+        $entree->sortie_user_id = auth()->id();
+        $entree->save();
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'date_sortie' => $entree->date_sortie->toDateTimeString(),
+                'sortie_user' => auth()->user()->name,
+            ]);
+        }
+        return redirect()->route('sorties.index')->with('success','Sortie enregistrée');
+    }
+}
