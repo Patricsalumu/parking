@@ -92,5 +92,6 @@
         if(hideBtn){ hideBtn.addEventListener('click', function(e){ e.preventDefault(); setCollapsed(true); }); }
       })();
     </script>
+    @stack('scripts')
   </body>
 </html>

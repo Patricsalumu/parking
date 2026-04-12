@@ -10,7 +10,7 @@ class Facturation extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['entree_id','categorie_id','montant_total','montant_paye','duree','reduction','date_paiement'];
+    protected $fillable = ['entree_id','categorie_id','user_id','montant_total','montant_paye','duree','reduction','date_paiement'];
 
     protected $dates = ['date_paiement'];
 
@@ -27,6 +27,11 @@ class Facturation extends Model
     public function paiements()
     {
         return $this->hasMany(Paiement::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(\App\Models\User::class);
     }
 
     public function calculateFromEntree()

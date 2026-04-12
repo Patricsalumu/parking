@@ -17,8 +17,128 @@ class FacturationController extends Controller
 
     public function index()
     {
-        $facturations = Facturation::with('entree.vehicule','categorie')->latest()->paginate(20);
-        return view('facturations.index', compact('facturations'));
+        $query = Facturation::with('entree.vehicule','categorie');
+
+        // date range filter on facture created_at
+        $start = request()->input('start_date', now()->format('Y-m-d'));
+        $end = request()->input('end_date', now()->format('Y-m-d'));
+        if ($start) $query->whereDate('created_at', '>=', $start);
+        if ($end) $query->whereDate('created_at', '<=', $end);
+
+        $facturations = $query->latest()->paginate(20);
+        $facturations->appends(request()->all());
+
+        // compute totals for current filters (not just page)
+        $all = (clone $query)->get();
+        $totalPaid = $all->sum('montant_paye');
+        $totalRemaining = $all->sum(function($f){ return ($f->montant_total - ($f->montant_paye ?? 0)); });
+        $totalBilled = $all->sum('montant_total');
+
+        return view('facturations.index', compact('facturations','totalPaid','totalRemaining','totalBilled','start','end'));
+    }
+
+    public function exportCsv()
+    {
+        $query = Facturation::with('entree.vehicule','categorie','user');
+        $start = request()->input('start_date');
+        $end = request()->input('end_date');
+        if ($start) $query->whereDate('created_at','>=',$start);
+        if ($end) $query->whereDate('created_at','<=',$end);
+
+        $rows = $query->orderBy('created_at','desc')->get();
+
+        $filename = 'facturations_'.now()->format('Ymd_His').'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($rows) {
+            $out = fopen('php://output','w');
+            fputcsv($out, ['ID','Date','Entree','Plaque','Client','Categorie','Total','Paye','Reste','Utilisateur']);
+            foreach ($rows as $r) {
+                fputcsv($out, [
+                    $r->id,
+                    $r->created_at ? $r->created_at->format('Y-m-d H:i') : '',
+                    $r->entree_id,
+                    $r->entree?->vehicule?->plaque,
+                    $r->entree?->client?->nom,
+                    $r->categorie?->nom,
+                    number_format($r->montant_total,2),
+                    number_format($r->montant_paye,2),
+                    number_format(($r->montant_total - ($r->montant_paye ?? 0)),2),
+                    $r->user?->name,
+                ]);
+            }
+            fclose($out);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPdf()
+    {
+        $query = Facturation::with('entree.vehicule','categorie','user');
+        $start = request()->input('start_date');
+        $end = request()->input('end_date');
+        if ($start) $query->whereDate('created_at','>=',$start);
+        if ($end) $query->whereDate('created_at','<=',$end);
+
+        $rows = $query->orderBy('created_at','desc')->get();
+
+        if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
+            $pdf = app()->make('dompdf.wrapper');
+            $pdf->loadView('facturations.export_pdf', compact('rows'));
+            return $pdf->download('facturations_'.now()->format('Ymd_His').'.pdf');
+        }
+
+        return view('facturations.export_pdf', compact('rows'));
+    }
+
+    public function create()
+    {
+        // access
+        if (!in_array(auth()->user()->role, ['superadmin'])) {
+            $acc = auth()->user()->acces;
+            if (!$acc || !$acc->facturation) {
+                abort(403,'Unauthorized');
+            }
+        }
+        $categories = Categorie::all();
+        // whether current user can apply reductions
+        $canReduce = in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->reduction);
+        return view('facturations.create', compact('categories','canReduce'));
+    }
+
+    // JSON lookup: find entree by plaque. Prefer open entrée (no sortie), else latest entrée for that plaque
+    public function findByPlaque(Request $request)
+    {
+        $plaque = $request->query('plaque');
+        if (empty($plaque)) return response()->json(['found'=>false]);
+        $veh = \App\Models\Vehicule::where('plaque', $plaque)->first();
+        if (!$veh) return response()->json(['found'=>false]);
+        // try open entree first
+        $entree = Entree::with('client','vehicule','user')
+            ->where('vehicule_id', $veh->id)
+            ->whereNull('date_sortie')
+            ->latest('date_entree')
+            ->first();
+        if (!$entree) {
+            $entree = Entree::with('client','vehicule','user')
+                ->where('vehicule_id', $veh->id)
+                ->latest('date_entree')
+                ->first();
+        }
+        if (!$entree) return response()->json(['found'=>false]);
+
+        // compute days (if sortie missing use now)
+        $start = $entree->date_entree;
+        $end = $entree->date_sortie ?? Carbon::now();
+        $hours = $end->diffInHours($start);
+        $days = (int) ceil($hours / 24);
+        $days = max(1, $days);
+
+        return response()->json(['found'=>true, 'entree'=>$entree, 'days'=>$days]);
     }
 
     public function show(Facturation $facturation)
@@ -35,8 +155,12 @@ class FacturationController extends Controller
                 abort(403,'Unauthorized');
             }
         }
-        $request->validate(['entree_id' => 'required|exists:entrees,id','categorie_id' => 'required|exists:categories,id']);
+        $request->validate(['entree_id' => 'required|exists:entrees,id','categorie_id' => 'required|exists:categories,id','reduction' => 'nullable|numeric|min:0','montant_paye' => 'nullable|numeric|min:0']);
         $entree = Entree::findOrFail($request->entree_id);
+        // Prevent creating a second facture for same entree
+        if (\App\Models\Facturation::where('entree_id', $entree->id)->exists()) {
+            return back()->with('error','Une facture existe déjà pour cette entrée.');
+        }
         // If sortie is not set, set it to now automatically before facturation
         if (!$entree->date_sortie) {
             $entree->date_sortie = Carbon::now();
@@ -45,18 +169,42 @@ class FacturationController extends Controller
 
         $cat = Categorie::find($request->categorie_id);
         $days = $entree->durationInDays();
-        $total = $days * ($cat->prix_par_24h ?? 0);
+        $unit = $cat->prix_par_24h ?? 0;
+        $total = $days * $unit;
+        // apply reduction only if allowed (superadmin or acces->reduction)
+        $reduction = 0;
+        if ($request->filled('reduction')) {
+            if (in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->reduction)) {
+                $reduction = max(0, floatval($request->reduction));
+            }
+        }
+        $totalAfterReduction = max(0, $total - $reduction);
+        // determine paid amount (clamp to totalAfterReduction)
+        $paye = 0;
+        if ($request->filled('montant_paye')) {
+            $paye = max(0, floatval($request->input('montant_paye')));
+            if ($paye > $totalAfterReduction) $paye = $totalAfterReduction;
+        }
+        $datePaiement = $paye > 0 ? Carbon::now() : null;
 
         $fact = Facturation::create([
             'entree_id' => $entree->id,
             'categorie_id' => $cat->id,
-            'montant_total' => $total,
-            'montant_paye' => 0,
+            'user_id' => auth()->id(),
+            'montant_total' => $totalAfterReduction,
+            'montant_paye' => $paye,
             'duree' => $days,
-            'reduction' => 0,
+            'reduction' => $reduction,
+            'date_paiement' => $datePaiement,
         ]);
 
         return redirect()->route('facturations.show', $fact->id)->with('success','Facturation créée');
+    }
+
+    public function print(Facturation $facturation)
+    {
+        $entreprise = \App\Models\Entreprise::first();
+        return view('facturations.print', compact('facturation','entreprise'));
     }
 
     public function destroy(Facturation $facturation)

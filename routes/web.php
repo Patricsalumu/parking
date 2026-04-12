@@ -41,7 +41,12 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('entrees', EntreeController::class);
     Route::get('entrees/{entree}/print', [EntreeController::class,'print'])->name('entrees.print');
     Route::get('facturations', [FacturationController::class,'index'])->name('facturations.index');
+    Route::get('facturations/export/csv', [FacturationController::class,'exportCsv'])->name('facturations.export.csv');
+    Route::get('facturations/export/pdf', [FacturationController::class,'exportPdf'])->name('facturations.export.pdf');
+    Route::get('facturations/create', [FacturationController::class,'create'])->name('facturations.create');
+    Route::get('facturations/find-by-plaque', [FacturationController::class,'findByPlaque'])->name('facturations.findByPlaque');
     Route::get('facturations/{facturation}', [FacturationController::class,'show'])->name('facturations.show');
+    Route::get('facturations/{facturation}/print', [FacturationController::class,'print'])->name('facturations.print');
     Route::post('facturations/create-from-entree', [FacturationController::class,'createFromEntree'])->name('facturations.createFromEntree');
 
     Route::resource('categories', CategorieController::class);
