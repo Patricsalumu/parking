@@ -46,11 +46,11 @@
 <div class="mb-2">Résultats: <span class="badge bg-info">{{ $entrees->total() }}</span></div>
 
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Vehicule</th><th>Client</th><th>Date Entrée</th><th>Date Sortie</th><th>Utilisateur</th><th>Actions</th></tr></thead>
+  <thead><tr><th>#</th><th>Vehicule</th><th>Client</th><th>Date Entrée</th><th>Date Sortie</th><th>Utilisateur</th><th>Actions</th></tr></thead>
   <tbody>
     @foreach($entrees as $e)
       <tr>
-        <td>{{ $e->id }}</td>
+        <td>{{ $entrees->firstItem() + $loop->index }}</td>
         <td>{{ $e->vehicule?->plaque }}</td>
         <td>{{ $e->client?->nom }}</td>
         <td>{{ $e->date_entree }}</td>
