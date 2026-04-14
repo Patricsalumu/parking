@@ -3,12 +3,12 @@
 @section('content')
 <div class="d-flex justify-content-between mb-3">
   <h3>Entrées</h3>
-  <a href="{{ route('entrees.create') }}" class="btn btn-primary">New Entry</a>
+  <a href="{{ route('entrees.create') }}" class="btn btn-primary">Nouvelle Entrée</a>
 </div>
 <form method="GET" action="{{ route('entrees.index') }}" class="mb-3">
   <div class="row g-2">
     <div class="col-md-3">
-      <input type="search" name="q" value="{{ request('q') }}" class="form-control" placeholder="Search plaque / client / user">
+      <input type="search" name="q" value="{{ request('q') }}" class="form-control" placeholder="Rechercher plaque / client / utilisateur">
     </div>
     <div class="col-md-2">
       <select name="client_id" class="form-select">
@@ -20,7 +20,7 @@
     </div>
     <div class="col-md-2">
       <select name="user_id" class="form-select">
-        <option value="">-- User --</option>
+        <option value="">-- Utilisateur --</option>
         @foreach($users ?? [] as $u)
           <option value="{{ $u->id }}" {{ request('user_id') == $u->id ? 'selected' : '' }}>{{ $u->name }}</option>
         @endforeach
@@ -46,7 +46,7 @@
 <div class="mb-2">Résultats: <span class="badge bg-info">{{ $entrees->total() }}</span></div>
 
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Vehicule</th><th>Client</th><th>Date Entree</th><th>Date Sortie</th><th>Utilisateur</th><th>Actions</th></tr></thead>
+  <thead><tr><th>ID</th><th>Vehicule</th><th>Client</th><th>Date Entrée</th><th>Date Sortie</th><th>Utilisateur</th><th>Actions</th></tr></thead>
   <tbody>
     @foreach($entrees as $e)
       <tr>
@@ -57,9 +57,9 @@
         <td>{{ $e->date_sortie }}</td>
         <td>{{ $e->user?->name }}</td>
         <td>
-          <a href="{{ route('entrees.edit', $e) }}" class="btn btn-sm btn-warning">Edit</a>
+          <a href="{{ route('entrees.edit', $e) }}" class="btn btn-sm btn-warning">Modifier</a>
           <a href="{{ route('entrees.print', $e) }}" target="_blank" class="btn btn-sm btn-primary">Imprimer</a>
-          <form action="{{ route('entrees.destroy', $e) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Delete</button></form>
+          <form action="{{ route('entrees.destroy', $e) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Supprimer</button></form>
         </td>
       </tr>
     @endforeach

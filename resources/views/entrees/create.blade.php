@@ -68,7 +68,7 @@
     <input type="number" name="essieux" id="essieux" value="{{ old('essieux') }}" class="form-control" placeholder="Number of axles">
   </div>
 
-  <h5>Client (will be auto-filled if plate exists)</h5>
+  <h5>Client</h5>
   <input type="hidden" name="client_id" id="client_id" value="{{ old('client_id') }}">
   <div class="mb-3"><label>Nom du client</label><input name="client_nom" id="client_nom" value="{{ old('client_nom') }}" class="form-control" placeholder="Client name"></div>
 

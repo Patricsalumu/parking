@@ -1,7 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<h3>Modifier Entrée</h3>
+<div class="d-flex justify-content-between mb-3">
+  <h3>Modifier Entrée</h3>
+  <div><a href="{{ route('entrees.index') }}" class="btn btn-secondary">Retour</a></div>
+</div>
 
 @if($errors->any())
   <div class="alert alert-danger">
@@ -47,24 +50,26 @@
     @error('plaque') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
   </div>
 
-  <div class="mb-3">
-    <label>Compagnie <span class="text-danger">*</span></label>
-    <input name="compagnie" id="compagnie" value="{{ old('compagnie', $entree->vehicule->compagnie ?? '') }}" class="form-control" placeholder="Company / carrier" required>
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label>Compagnie <span class="text-danger">*</span></label>
+      <input name="compagnie" id="compagnie" value="{{ old('compagnie', $entree->vehicule->compagnie ?? '') }}" class="form-control" placeholder="Company / carrier" required>
+    </div>
+    <div class="col-md-6 mb-3">
+      <label>Pays <span class="text-danger">*</span></label>
+      <input name="pays" id="pays" value="{{ old('pays', $entree->vehicule->pays ?? '') }}" class="form-control" placeholder="Country" required>
+    </div>
   </div>
 
-  <div class="mb-3">
-    <label>Marque</label>
-    <input name="marque" id="marque" value="{{ old('marque', $entree->vehicule->marque ?? '') }}" class="form-control" placeholder="Vehicle make/model">
-  </div>
-
-  <div class="mb-3">
-    <label>Pays <span class="text-danger">*</span></label>
-    <input name="pays" id="pays" value="{{ old('pays', $entree->vehicule->pays ?? '') }}" class="form-control" placeholder="Country" required>
-  </div>
-
-  <div class="mb-3">
-    <label>Essieux</label>
-    <input type="number" name="essieux" id="essieux" value="{{ old('essieux', $entree->vehicule->essieux ?? '') }}" class="form-control" placeholder="Number of axles">
+  <div class="row">
+    <div class="col-md-6 mb-3">
+      <label>Marque</label>
+      <input name="marque" id="marque" value="{{ old('marque', $entree->vehicule->marque ?? '') }}" class="form-control" placeholder="Vehicle make/model">
+    </div>
+    <div class="col-md-6 mb-3">
+      <label>Essieux</label>
+      <input type="number" name="essieux" id="essieux" value="{{ old('essieux', $entree->vehicule->essieux ?? '') }}" class="form-control" placeholder="Number of axles">
+    </div>
   </div>
 
   <h5>Client (auto-filled if plaque exists)</h5>
