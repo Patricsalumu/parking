@@ -55,6 +55,11 @@ class Entree extends Model
         return $this->belongsTo(User::class, 'sortie_user_id');
     }
 
+    public function categorie()
+    {
+        return $this->belongsTo(\App\Models\Categorie::class, 'categorie_id');
+    }
+
     public function durationInDays()
     {
         if (!$this->date_sortie) return null;

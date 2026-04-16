@@ -5,12 +5,13 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use App\Models\Categorie;
 
 class Facturation extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['entree_id','categorie_id','user_id','montant_total','montant_paye','duree','reduction','date_paiement'];
+    protected $fillable = ['entree_id','user_id','montant_total','montant_paye','duree','reduction','date_paiement'];
 
     protected $dates = ['date_paiement'];
 
@@ -37,12 +38,44 @@ class Facturation extends Model
     public function calculateFromEntree()
     {
         $entree = $this->entree;
-        if (!$entree || !$entree->date_sortie) return null;
-        $days = $entree->durationInDays();
-        $price = $this->categorie ? $this->categorie->prix_par_24h : 0;
-        $total = $days * $price;
-        $this->duree = $days;
-        $this->montant_total = $total - ($this->reduction ?? 0);
+        if (!$entree) return null;
+        $start = Carbon::parse($entree->date_entree);
+        $end = $entree->date_sortie ? Carbon::parse($entree->date_sortie) : Carbon::now();
+        $hours = $end->diffInHours($start);
+        // prefer category linked to this facturation, otherwise fetch from entree
+        $cat = $this->categorie ?? (isset($entree->categorie_id) ? Categorie::find($entree->categorie_id) : null);
+        $price = $cat ? $cat->prix_par_24h : 0;
+
+        // billing rules:
+        // - first 24h = full price
+        // - after the first day, every additional full 24h = full price
+        // - if the final partial day (beyond full 24h blocks) has <=5h, charge 50% of price,
+        //   otherwise charge full price for that last partial day
+        if ($hours <= 24) {
+            $total = $price;
+        } else {
+            $remaining = $hours - 24;
+            $fullAdditionalDays = intdiv($remaining, 24);
+            $remainder = $remaining % 24;
+            $total = $price; // first day
+            $total += $fullAdditionalDays * $price;
+            if ($remainder > 0) {
+                $total += ($remainder <= 5) ? ($price * 0.5) : $price;
+            }
+        }
+
+        // Special rule: category 1 (canter) pays only if they stayed overnight.
+        // If entry date == current date, charge 0.
+        $catId = $cat ? $cat->id : null;
+        if ($catId == 1) {
+            if ($start->toDateString() === Carbon::now()->toDateString()) {
+                $total = 0;
+            }
+        }
+
+        // store duration in days (as before, for backward compatibility)
+        $this->duree = (int) ceil(max(1, $hours) / 24);
+        $this->montant_total = max(0, $total - ($this->reduction ?? 0));
         return $this;
     }
 }

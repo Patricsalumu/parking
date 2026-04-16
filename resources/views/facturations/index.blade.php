@@ -49,7 +49,7 @@
         <td>{{ $f->id }}</td>
         <td>{{ $f->entree_id }}</td>
         <td>{{ $f->entree->vehicule?->plaque }}</td>
-        <td>{{ $f->categorie?->nom ?? 'N/C' }}</td>
+        <td>{{ $f->entree?->categorie?->nom ?? ($f->categorie?->nom ?? 'N/C') }}</td>
             @php
               $duration = 'N/A';
               if ($f->entree && $f->entree->date_entree) {

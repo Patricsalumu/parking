@@ -44,7 +44,7 @@
       <td>{{ $e->user?->name }}</td>
       <td>
         @if($e->facturation)
-          #{{ $e->facturation->id }} - {{ $e->facturation->categorie?->nom ?? 'N/C' }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
+          #{{ $e->facturation->id }} - {{ $e->categorie?->nom ?? ($e->facturation->categorie?->nom ?? 'N/C') }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
         @else
           <span class="text-muted">Aucune</span>
         @endif

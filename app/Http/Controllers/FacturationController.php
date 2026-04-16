@@ -213,15 +213,45 @@ class FacturationController extends Controller
         }
         // Note: do NOT set entree->date_sortie here. Sortie must be performed from the Sorties page.
 
-        $cat = Categorie::find($request->categorie_id);
+        // prefer category from entree; fallback to submitted categorie_id
+        $cat = null;
+        if ($entree->categorie_id) {
+            $cat = Categorie::find($entree->categorie_id);
+        } elseif ($request->filled('categorie_id')) {
+            $cat = Categorie::find($request->categorie_id);
+        }
         // compute days: if sortie missing use now
         $start = $entree->date_entree;
         $end = $entree->date_sortie ?? Carbon::now();
         $hours = $end->diffInHours($start);
-        $days = (int) ceil($hours / 24);
-        $days = max(1, $days);
         $unit = $cat->prix_par_24h ?? 0;
-        $total = $days * $unit;
+
+        // apply billing rule:
+        // - first 24h => full unit
+        // - after first day, each full 24h => full unit
+        // - final partial day beyond full 24h blocks: if <=5h => 50% unit, else => full unit
+        if ($hours <= 24) {
+            $total = $unit;
+        } else {
+            $remaining = $hours - 24;
+            $fullAdditionalDays = intdiv($remaining, 24);
+            $remainder = $remaining % 24;
+            $total = $unit; // first day
+            $total += $fullAdditionalDays * $unit;
+            if ($remainder > 0) {
+                $total += ($remainder <= 5) ? ($unit * 0.5) : $unit;
+            }
+        }
+
+        // Special rule: category 1 (canter) pays only if they stayed overnight.
+        // If entry date equals today's date, charge 0.
+        if ($cat->id == 1) {
+            $entryDate = $entree->date_entree ? Carbon::parse($entree->date_entree)->toDateString() : null;
+            if ($entryDate && $entryDate === Carbon::now()->toDateString()) {
+                $total = 0;
+            }
+        }
+        $days = (int) ceil(max(1, $hours) / 24);
         // apply reduction only if allowed (superadmin or acces->reduction)
         $reduction = 0;
         if ($request->filled('reduction')) {
@@ -238,16 +268,16 @@ class FacturationController extends Controller
         }
         $datePaiement = $paye > 0 ? Carbon::now() : null;
 
-        $fact = Facturation::create([
+        $factData = [
             'entree_id' => $entree->id,
-            'categorie_id' => $cat->id,
             'user_id' => auth()->id(),
             'montant_total' => $totalAfterReduction,
             'montant_paye' => $paye,
             'duree' => $days,
             'reduction' => $reduction,
             'date_paiement' => $datePaiement,
-        ]);
+        ];
+        $fact = Facturation::create($factData);
 
         // Create basic accounting journal entry: debit client (411000), credit product (parking 701000)
         try {

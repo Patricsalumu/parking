@@ -4,11 +4,76 @@
 <h3>Facturation #{{ $facturation->id }}</h3>
 <div class="card p-3">
   <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>
-  <p><strong>Vehicule:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
-  <p><strong>Durée (jours):</strong> {{ $facturation->duree }}</p>
-  <p><strong>Total:</strong> {{ $facturation->montant_total }}</p>
-  <p><strong>Montant payé:</strong> {{ $facturation->montant_paye }}</p>
-  <p><strong>Balance:</strong> {{ $facturation->montant_total - $facturation->montant_paye }}</p>
+  <p><strong>Véhicule - Plaque:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
+  <p><strong>Marque:</strong> {{ $facturation->entree->vehicule?->marque }}</p>
+  <p><strong>Pays:</strong> {{ $facturation->entree->vehicule?->pays }}</p>
+  <p><strong>Essieux:</strong> {{ $facturation->entree->vehicule?->essieux }}</p>
+  <p><strong>Client:</strong> {{ $facturation->entree->client?->nom }}</p>
+  @php
+    $fmt = function($d, $format = 'Y-m-d H:i') {
+      if (!$d) return null;
+      if (is_string($d)) return \Carbon\Carbon::parse($d)->format($format);
+      if (method_exists($d, 'format')) return $d->format($format);
+      return null;
+    };
+  @endphp
+  <p><strong>Date entrée:</strong> {{ $fmt($facturation->entree->date_entree) ?? '—' }}</p>
+  <p><strong>Date sortie:</strong> {{ $fmt($facturation->entree->date_sortie) ?? '—' }}</p>
+  <p><strong>Durée (jours enregistrés):</strong> {{ $facturation->duree }}</p>
+  @php
+    $start = $facturation->entree->date_entree ? \Carbon\Carbon::parse($facturation->entree->date_entree) : null;
+    $end = $facturation->entree->date_sortie ? \Carbon\Carbon::parse($facturation->entree->date_sortie) : null;
+    $end = $end ?? \Carbon\Carbon::now();
+    if ($start) {
+      $diffMinutes = $end->diffInMinutes($start);
+      $hours = intdiv($diffMinutes, 60);
+      $minutes = $diffMinutes % 60;
+      $daysCeil = max(1, (int) ceil($hours / 24));
+      $remainder = ($hours > 24) ? (($hours - 24) % 24) : 0;
+    } else {
+      $hours = $minutes = $diffMinutes = 0;
+      $daysCeil = $facturation->duree ?? 0;
+      $remainder = 0;
+    }
+    $categorie = $facturation->entree->categorie_id ? \App\Models\Categorie::find($facturation->entree->categorie_id) : null;
+    $catId = $categorie?->id ?? null;
+  @endphp
+  <p><strong>Durée détaillée:</strong> {{ $hours }}h {{ $minutes }}m</p>
+  <p><strong>Jours calculés:</strong> {{ $daysCeil }}</p>
+  <p><strong>Catégorie (entrée):</strong> {{ $categorie?->nom ?? '—' }}</p>
+  <p><strong>Montant total:</strong> {{ number_format($facturation->montant_total,2) }}</p>
+  <p><strong>Réduction:</strong> {{ number_format($facturation->reduction ?? 0,2) }}</p>
+  <p><strong>Net à payer:</strong> {{ number_format( ($facturation->montant_total - ($facturation->reduction ?? 0)),2) }}</p>
+  <p><strong>Montant payé:</strong> {{ number_format($facturation->montant_paye ?? 0,2) }}</p>
+  <p><strong>Reste:</strong> {{ number_format( ($facturation->montant_total - ($facturation->montant_paye ?? 0)),2) }}</p>
+  <p><strong>Facturé par:</strong> {{ $facturation->user?->name ?? '—' }}</p>
+  @if($facturation->paiements && $facturation->paiements->count() > 0)
+    <p><strong>Paiements enregistrés:</strong></p>
+    <ul>
+      @foreach($facturation->paiements as $p)
+        <li>
+          {{ $fmt($p->date_paiement) ?? $fmt($p->created_at) }} — {{ number_format($p->montant,2) }}
+          ({{ $p->mode ?? '—' }})
+          @if($p->user)
+            — Reçu par: {{ $p->user->name }}
+          @endif
+          @if($p->note) — {{ $p->note }} @endif
+        </li>
+      @endforeach
+    </ul>
+  @else
+    <p><strong>Paiements enregistrés:</strong> Aucun</p>
+  @endif
+  @php
+    // alerts for special cases
+    $alert = null;
+    if ($catId == 1 && $start && $start->toDateString() === \Carbon\Carbon::now()->toDateString()) {
+      $alert = '<div class="alert alert-warning">Catégorie 1 : pas de nuitée détectée → facturation = 0.</div>';
+    } elseif ($catId == 2 && isset($remainder) && ($remainder = (int) (($hours - 24) % 24)) && ($hours > 24) && $remainder > 0 && $remainder <= 5) {
+      $alert = '<div class="alert alert-info">Catégorie 2 : dernier jour partiel ≤ 5h → dernier jour facturé à 50%.</div>';
+    }
+  @endphp
+  {!! $alert ?? '' !!}
 </div>
 <div class="mt-2 d-flex gap-2">
   <button id="btnPayShow" class="btn btn-success">Payer</button>

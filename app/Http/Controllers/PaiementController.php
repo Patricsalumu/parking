@@ -51,6 +51,7 @@ class PaiementController extends Controller
             'date_paiement' => $data['date_paiement'] ?? Carbon::now(),
             'mode' => $data['mode'] ?? null,
             'note' => $data['note'] ?? null,
+            'user_id' => auth()->id(),
         ]);
 
         // update facturation
