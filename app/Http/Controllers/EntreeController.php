@@ -129,7 +129,8 @@ class EntreeController extends Controller
     {
         $clients = Client::all();
         $vehicules = Vehicule::all();
-        return view('entrees.create', compact('clients','vehicules'));
+        $categories = \App\Models\Categorie::all();
+        return view('entrees.create', compact('clients','vehicules','categories'));
     }
 
     public function store(Request $request)
@@ -151,7 +152,7 @@ class EntreeController extends Controller
             'pays' => 'required|string',
             'essieux' => 'nullable|integer',
             'observation' => 'nullable|string',
-            'qr_code' => 'nullable|string',
+            'categorie_id' => 'nullable|exists:categories,id',
         ]);
 
         // create/select client inline
@@ -197,7 +198,7 @@ class EntreeController extends Controller
             'client_id' => $data['client_id'] ?? null,
             'date_entree' => Carbon::now(),
             'observation' => $data['observation'] ?? null,
-            'qr_code' => $data['qr_code'] ?? null,
+            'categorie_id' => $data['categorie_id'] ?? null,
         ]);
 
         return redirect()->route('entrees.index')->with('success','Entrée enregistrée');
@@ -207,7 +208,8 @@ class EntreeController extends Controller
     {
         $clients = Client::all();
         $vehicules = Vehicule::all();
-        return view('entrees.edit', compact('entree','clients','vehicules'));
+        $categories = \App\Models\Categorie::all();
+        return view('entrees.edit', compact('entree','clients','vehicules','categories'));
     }
 
     public function update(Request $request, Entree $entree)
@@ -229,7 +231,7 @@ class EntreeController extends Controller
             'pays' => 'required|string',
             'essieux' => 'nullable|integer',
             'observation' => 'nullable|string',
-            'qr_code' => 'nullable|string',
+            'categorie_id' => 'nullable|exists:categories,id',
         ]);
 
         // create/select client inline
@@ -273,7 +275,7 @@ class EntreeController extends Controller
         $entree->vehicule_id = $data['vehicule_id'];
         $entree->client_id = $data['client_id'] ?? $entree->client_id;
         $entree->observation = $data['observation'] ?? $entree->observation;
-        $entree->qr_code = $data['qr_code'] ?? $entree->qr_code;
+        $entree->categorie_id = $data['categorie_id'] ?? $entree->categorie_id;
         $entree->save();
         return redirect()->route('entrees.index')->with('success','Entrée mise à jour');
     }

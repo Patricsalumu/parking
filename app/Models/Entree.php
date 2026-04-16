@@ -10,7 +10,7 @@ class Entree extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','sortie_user_id','observation','qr_code'];
+    protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','sortie_user_id','observation','categorie_id'];
     protected $dates = ['date_entree','date_sortie'];
     protected $casts = [
         'date_entree' => 'datetime',
