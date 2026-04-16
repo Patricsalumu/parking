@@ -96,7 +96,15 @@
 
   <h5>Client</h5>
   <input type="hidden" name="client_id" id="client_id" value="{{ old('client_id') }}">
-  <div class="mb-3"><label>Nom du client</label><input name="client_nom" id="client_nom" value="{{ old('client_nom') }}" class="form-control" placeholder="Client name"></div>
+  <div class="mb-3">
+    <label>Nom du client</label>
+    <input name="client_nom" id="client_nom" list="clients_list" class="form-control" value="{{ old('client_nom') }}" placeholder="Client name (tapez pour suggestions)">
+    <datalist id="clients_list">
+      @foreach($clients as $c)
+        <option value="{{ $c->nom }}"></option>
+      @endforeach
+    </datalist>
+  </div>
 
   <div class="mb-3"><label>Observation</label><textarea name="observation" class="form-control">{{ old('observation') }}</textarea></div>
 
@@ -161,27 +169,77 @@ document.addEventListener('DOMContentLoaded', function(){
       })
       .then(data=>{
         if (!data.found) {
-          // clear linked ids but keep plaque
+          // clear all linked vehicle and client fields
           document.getElementById('vehicule_id').value = '';
+          document.getElementById('compagnie').value = '';
+          document.getElementById('marque').value = '';
+          document.getElementById('pays').value = '';
+          document.getElementById('essieux').value = '';
           document.getElementById('client_id').value = '';
+          document.getElementById('client_nom').value = '';
           setStatus('Non trouvé', 'bg-warning');
+          window.lastFetchedPlaque = '';
           return;
         }
         const v = data.vehicule;
+        // fill vehicle fields but DO NOT auto-fill client (user must choose or type)
         document.getElementById('vehicule_id').value = v.id;
         document.getElementById('compagnie').value = v.compagnie || '';
         document.getElementById('marque').value = v.marque || '';
         document.getElementById('pays').value = v.pays || '';
         document.getElementById('essieux').value = v.essieux || '';
-        if (v.client) {
-          document.getElementById('client_id').value = v.client.id;
-          document.getElementById('client_nom').value = v.client.nom || '';
-        }
+        // clear client selection so user explicitly picks or types
+        document.getElementById('client_id').value = '';
+        document.getElementById('client_nom').value = '';
+        window.lastFetchedPlaque = plaque;
         setStatus('Données trouvées', 'bg-success');
       }).catch((err)=>{
         console.error('Plaque lookup error:', err);
         setStatus('Erreur', 'bg-danger');
       });
+  }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // map of client name -> id for quick lookup
+  const clientsMap = @json($clients->pluck('id','nom'));
+  const clientInput = document.getElementById('client_nom');
+  const clientIdFld = document.getElementById('client_id');
+  const plaqueInput = document.getElementById('plaque');
+  window.lastFetchedPlaque = window.lastFetchedPlaque || '';
+
+  // when user types client name, if it exactly matches a known client set client_id, otherwise clear it
+  if (clientInput) {
+    clientInput.addEventListener('input', function(){
+      const v = this.value || '';
+      if (clientsMap[v] !== undefined) {
+        clientIdFld.value = clientsMap[v];
+      } else {
+        clientIdFld.value = '';
+      }
+    });
+  }
+
+  // if user edits plaque after a successful lookup, clear prefilled vehicle/client data
+  if (plaqueInput) {
+    plaqueInput.addEventListener('input', function(){
+      const val = this.value.trim();
+      if (window.lastFetchedPlaque && val !== window.lastFetchedPlaque) {
+        // clear vehicle and client linked fields
+        document.getElementById('vehicule_id').value = '';
+        document.getElementById('compagnie').value = '';
+        document.getElementById('marque').value = '';
+        document.getElementById('pays').value = '';
+        document.getElementById('essieux').value = '';
+        document.getElementById('client_id').value = '';
+        document.getElementById('client_nom').value = '';
+        window.lastFetchedPlaque = '';
+        document.getElementById('plaque_status').textContent = 'Recherche inactive';
+        document.getElementById('plaque_status').className = 'badge bg-secondary';
+      }
+    });
   }
 });
 </script>
