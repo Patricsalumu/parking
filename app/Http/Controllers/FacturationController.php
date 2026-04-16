@@ -21,11 +21,22 @@ class FacturationController extends Controller
     {
         $query = Facturation::with('entree.vehicule','categorie');
 
-        // date range filter on facture created_at
+        // search query: if it's a plaque-like token (no spaces) we will ignore date filters
+        $q = request()->input('q');
+        $isPlaqueSearch = $q && preg_match('/^[A-Za-z0-9\-]+$/', $q);
+        if ($q) {
+            $query->whereHas('entree.vehicule', function($qv) use ($q){ $qv->where('plaque','like','%'.$q.'%'); })
+                  ->orWhereHas('entree.client', function($qc) use ($q){ $qc->where('nom','like','%'.$q.'%'); })
+                  ->orWhereHas('user', function($qu) use ($q){ $qu->where('name','like','%'.$q.'%'); });
+        }
+
+        // date range filter on facture created_at (defaults to today) - skip when plaque search
         $start = request()->input('start_date', now()->format('Y-m-d'));
         $end = request()->input('end_date', now()->format('Y-m-d'));
-        if ($start) $query->whereDate('created_at', '>=', $start);
-        if ($end) $query->whereDate('created_at', '<=', $end);
+        if (!$isPlaqueSearch) {
+            if ($start) $query->whereDate('created_at', '>=', $start);
+            if ($end) $query->whereDate('created_at', '<=', $end);
+        }
 
         $facturations = $query->latest()->paginate(20);
         $facturations->appends(request()->all());
@@ -42,10 +53,19 @@ class FacturationController extends Controller
     public function exportCsv()
     {
         $query = Facturation::with('entree.vehicule','categorie','user');
+        $q = request()->input('q');
+        $isPlaqueSearch = $q && preg_match('/^[A-Za-z0-9\-]+$/', $q);
+        if ($q) {
+            $query->whereHas('entree.vehicule', function($qv) use ($q){ $qv->where('plaque','like','%'.$q.'%'); })
+                  ->orWhereHas('entree.client', function($qc) use ($q){ $qc->where('nom','like','%'.$q.'%'); })
+                  ->orWhereHas('user', function($qu) use ($q){ $qu->where('name','like','%'.$q.'%'); });
+        }
         $start = request()->input('start_date');
         $end = request()->input('end_date');
-        if ($start) $query->whereDate('created_at','>=',$start);
-        if ($end) $query->whereDate('created_at','<=',$end);
+        if (!$isPlaqueSearch) {
+            if ($start) $query->whereDate('created_at','>=',$start);
+            if ($end) $query->whereDate('created_at','<=',$end);
+        }
 
         $rows = $query->orderBy('created_at','desc')->get();
 
@@ -81,10 +101,19 @@ class FacturationController extends Controller
     public function exportPdf()
     {
         $query = Facturation::with('entree.vehicule','categorie','user');
+        $q = request()->input('q');
+        $isPlaqueSearch = $q && preg_match('/^[A-Za-z0-9\-]+$/', $q);
+        if ($q) {
+            $query->whereHas('entree.vehicule', function($qv) use ($q){ $qv->where('plaque','like','%'.$q.'%'); })
+                  ->orWhereHas('entree.client', function($qc) use ($q){ $qc->where('nom','like','%'.$q.'%'); })
+                  ->orWhereHas('user', function($qu) use ($q){ $qu->where('name','like','%'.$q.'%'); });
+        }
         $start = request()->input('start_date');
         $end = request()->input('end_date');
-        if ($start) $query->whereDate('created_at','>=',$start);
-        if ($end) $query->whereDate('created_at','<=',$end);
+        if (!$isPlaqueSearch) {
+            if ($start) $query->whereDate('created_at','>=',$start);
+            if ($end) $query->whereDate('created_at','<=',$end);
+        }
 
         $rows = $query->orderBy('created_at','desc')->get();
 

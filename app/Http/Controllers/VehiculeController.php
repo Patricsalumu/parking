@@ -78,4 +78,50 @@ class VehiculeController extends Controller
         }
         return response()->json(['found' => true, 'vehicule' => $vehicule]);
     }
+
+    // AJAX endpoint: search matching plaques by prefix or substring (for suggestions)
+    public function searchPlaques(Request $request)
+    {
+        $q = $request->query('q');
+        if (empty($q)) return response()->json(['results' => []]);
+        $q = trim($q);
+        // Find matching vehicles, then for each vehicle try to find an open entree (no date_sortie).
+        $vehicles = Vehicule::where('plaque','like','%'.$q.'%')
+            ->orderBy('plaque')
+            ->limit(50)
+            ->get();
+
+        $results = [];
+        foreach ($vehicles as $v) {
+            // prefer open entree
+            $entree = \App\Models\Entree::with('client')
+                ->where('vehicule_id', $v->id)
+                ->whereNull('date_sortie')
+                ->latest('date_entree')
+                ->first();
+            if (!$entree) {
+                $entree = \App\Models\Entree::with('client')
+                    ->where('vehicule_id', $v->id)
+                    ->latest('date_entree')
+                    ->first();
+            }
+            $results[] = [
+                'plaque' => $v->plaque,
+                'pays' => $v->pays,
+                'compagnie' => $v->compagnie,
+                'client' => $entree?->client?->nom ?? $v->client?->nom ?? null,
+                'has_open' => $entree && $entree->date_sortie === null,
+                'entree_id' => $entree?->id ?? null,
+            ];
+        }
+
+        // sort: open entries first, then by plaque
+        usort($results, function($a,$b){
+            if ($a['has_open'] && !$b['has_open']) return -1;
+            if (!$a['has_open'] && $b['has_open']) return 1;
+            return strcmp($a['plaque'],$b['plaque']);
+        });
+
+        return response()->json(['results' => array_slice($results,0,15)]);
+    }
 }

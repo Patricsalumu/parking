@@ -19,9 +19,11 @@ class EntreeController extends Controller
     public function index()
     {
         $query = Entree::with('vehicule','client','user');
-
         // search query for plaque, client name or user name
-        if ($q = request()->input('q')) {
+        $q = request()->input('q');
+        // consider it a plaque search when the query is a single token of letters/numbers/hyphen (no spaces)
+        $isPlaqueSearch = $q && preg_match('/^[A-Za-z0-9\-]+$/', $q);
+        if ($q) {
             $query->whereHas('vehicule', function($qv) use ($q){
                 $qv->where('plaque','like','%'.$q.'%');
             })->orWhereHas('client', function($qc) use ($q){
@@ -39,14 +41,16 @@ class EntreeController extends Controller
             $query->where('user_id', $user);
         }
 
-        // date range filter (defaults to today)
+        // date range filter (defaults to today) - skip when doing a plaque search
         $start = request()->input('start_date', now()->format('Y-m-d'));
         $end = request()->input('end_date', now()->format('Y-m-d'));
-        if ($start) {
-            $query->whereDate('date_entree', '>=', $start);
-        }
-        if ($end) {
-            $query->whereDate('date_entree', '<=', $end);
+        if (!$isPlaqueSearch) {
+            if ($start) {
+                $query->whereDate('date_entree', '>=', $start);
+            }
+            if ($end) {
+                $query->whereDate('date_entree', '<=', $end);
+            }
         }
 
         $entrees = $query->orderBy('date_entree','desc')->paginate(20);
@@ -59,7 +63,9 @@ class EntreeController extends Controller
     public function exportCsv()
     {
         $query = Entree::with('vehicule','client','user');
-        if ($q = request()->input('q')) {
+        $q = request()->input('q');
+        $isPlaqueSearch = $q && preg_match('/^[A-Za-z0-9\-]+$/', $q);
+        if ($q) {
             $query->whereHas('vehicule', function($qv) use ($q){ $qv->where('plaque','like','%'.$q.'%'); })
                   ->orWhereHas('client', function($qc) use ($q){ $qc->where('nom','like','%'.$q.'%'); })
                   ->orWhereHas('user', function($qu) use ($q){ $qu->where('name','like','%'.$q.'%'); });
@@ -68,8 +74,10 @@ class EntreeController extends Controller
         if ($user = request()->input('user_id')) $query->where('user_id', $user);
         $start = request()->input('start_date', now()->format('Y-m-d'));
         $end = request()->input('end_date', now()->format('Y-m-d'));
-        if ($start) $query->whereDate('date_entree','>=',$start);
-        if ($end) $query->whereDate('date_entree','<=',$end);
+        if (!$isPlaqueSearch) {
+            if ($start) $query->whereDate('date_entree','>=',$start);
+            if ($end) $query->whereDate('date_entree','<=',$end);
+        }
 
         $rows = $query->orderBy('date_entree','desc')->get();
 
@@ -101,7 +109,9 @@ class EntreeController extends Controller
     public function exportPdf()
     {
         $query = Entree::with('vehicule','client','user');
-        if ($q = request()->input('q')) {
+        $q = request()->input('q');
+        $isPlaqueSearch = $q && preg_match('/^[A-Za-z0-9\-]+$/', $q);
+        if ($q) {
             $query->whereHas('vehicule', function($qv) use ($q){ $qv->where('plaque','like','%'.$q.'%'); })
                   ->orWhereHas('client', function($qc) use ($q){ $qc->where('nom','like','%'.$q.''); })
                   ->orWhereHas('user', function($qu) use ($q){ $qu->where('name','like','%'.$q.'%'); });
@@ -110,8 +120,10 @@ class EntreeController extends Controller
         if ($user = request()->input('user_id')) $query->where('user_id', $user);
         $start = request()->input('start_date', now()->format('Y-m-d'));
         $end = request()->input('end_date', now()->format('Y-m-d'));
-        if ($start) $query->whereDate('date_entree','>=',$start);
-        if ($end) $query->whereDate('date_entree','<=',$end);
+        if (!$isPlaqueSearch) {
+            if ($start) $query->whereDate('date_entree','>=',$start);
+            if ($end) $query->whereDate('date_entree','<=',$end);
+        }
 
         $rows = $query->orderBy('date_entree','desc')->get();
 

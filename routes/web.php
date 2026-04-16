@@ -34,6 +34,7 @@ Route::middleware(['auth'])->group(function () {
     // Explicit lookup route must come before the resource route so it is not
     // captured by the resource's `vehicules/{vehicule}` pattern.
     Route::get('vehicules/find-by-plaque', [VehiculeController::class,'findByPlaque'])->name('vehicules.findByPlaque');
+    Route::get('vehicules/search-plaques', [VehiculeController::class,'searchPlaques'])->name('vehicules.searchPlaques');
     Route::resource('vehicules', VehiculeController::class);
     // Entrées resource and exports
     Route::get('entrees/export/csv', [EntreeController::class,'exportCsv'])->name('entrees.export.csv');

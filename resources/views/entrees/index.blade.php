@@ -46,7 +46,18 @@
 <div class="mb-2">Résultats: <span class="badge bg-info">{{ $entrees->total() }}</span></div>
 
 <table class="table table-striped">
-  <thead><tr><th>#</th><th>Vehicule</th><th>Client</th><th>Date Entrée</th><th>Date Sortie</th><th>Utilisateur</th><th>Actions</th></tr></thead>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Vehicule</th>
+      <th>Client</th>
+      <th>Date Entrée</th>
+      <th>Date Sortie</th>
+      <th>Durée</th>
+      <th>Utilisateur</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
   <tbody>
     @foreach($entrees as $e)
       <tr>
@@ -55,6 +66,19 @@
         <td>{{ $e->client?->nom }}</td>
         <td>{{ $e->date_entree }}</td>
         <td>{{ $e->date_sortie }}</td>
+        @php
+          if ($e->date_entree) {
+            $start = \Carbon\Carbon::parse($e->date_entree);
+            $end = $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie) : \Carbon\Carbon::now();
+            $days = $end->diffInDays($start);
+            $hours = $end->diffInHours($start) % 24;
+            $minutes = $end->diffInMinutes($start) % 60;
+            $duration = $days . 'j ' . $hours . 'h ' . $minutes . 'm';
+          } else {
+            $duration = 'N/A';
+          }
+        @endphp
+        <td>{{ $duration }}</td>
         <td>{{ $e->user?->name }}</td>
         <td>
           <a href="{{ route('entrees.edit', $e) }}" class="btn btn-sm btn-warning">Modifier</a>

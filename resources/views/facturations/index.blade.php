@@ -29,7 +29,20 @@
   </div>
 </div>
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Entrée</th><th>Vehicule</th><th>Catégorie</th><th>Duree (jours)</th><th>Utilisateur</th><th>Total</th><th>Payé</th><th>Reste</th><th>Actions</th></tr></thead>
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Entrée</th>
+      <th>Vehicule</th>
+      <th>Catégorie</th>
+      <th>Durée</th>
+      <th>Utilisateur</th>
+      <th>Total</th>
+      <th>Payé</th>
+      <th>Reste</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
   <tbody>
     @foreach($facturations as $f)
       <tr>
@@ -37,8 +50,19 @@
         <td>{{ $f->entree_id }}</td>
         <td>{{ $f->entree->vehicule?->plaque }}</td>
         <td>{{ $f->categorie?->nom ?? 'N/C' }}</td>
-        <td>{{ $f->duree ?? 'N/A' }}</td>
-        <td>{{ $f->user?->name ?? $f->entree->user?->name }}</td>
+            @php
+              $duration = 'N/A';
+              if ($f->entree && $f->entree->date_entree) {
+                $start = \Carbon\Carbon::parse($f->entree->date_entree);
+                $end = $f->entree->date_sortie ? \Carbon\Carbon::parse($f->entree->date_sortie) : \Carbon\Carbon::now();
+                $days = $end->diffInDays($start);
+                $hours = $end->diffInHours($start) % 24;
+                $minutes = $end->diffInMinutes($start) % 60;
+                $duration = $days . 'j ' . $hours . 'h ' . $minutes . 'm';
+              }
+            @endphp
+            <td>{{ $duration }}</td>
+            <td>{{ $f->user?->name ?? $f->entree->user?->name }}</td>
         <td>{{ number_format($f->montant_total,2) }}</td>
         <td>{{ number_format($f->montant_paye ?? 0,2) }}</td>
         <td>{{ number_format(($f->montant_total - ($f->montant_paye ?? 0)),2) }}</td>
@@ -89,6 +113,62 @@ document.addEventListener('DOMContentLoaded', function(){
       payModal.show();
     });
   });
+
+  // Plaque suggestions: dynamic datalist population
+  const plaqueInput = document.getElementById('indexSearchPlaque');
+  if (plaqueInput) {
+    // create datalist element
+    let dl = document.getElementById('plaques_list');
+    if (!dl) {
+      dl = document.createElement('datalist');
+      dl.id = 'plaques_list';
+      document.body.appendChild(dl);
+    }
+    plaqueInput.setAttribute('list','plaques_list');
+
+    let debounceTimer = null;
+    plaqueInput.addEventListener('input', function(){
+      const q = this.value.trim();
+      if (debounceTimer) clearTimeout(debounceTimer);
+      if (!q) { dl.innerHTML = ''; return; }
+      debounceTimer = setTimeout(()=>{
+        fetch("{{ route('vehicules.searchPlaques') }}?q="+encodeURIComponent(q), {credentials:'same-origin'})
+          .then(r=> r.ok ? r.json() : Promise.reject())
+          .then(data=>{
+            dl.innerHTML = '';
+            window._plaqueSuggestions = window._plaqueSuggestions || {};
+            window._plaqueSuggestions = {}; // reset
+            (data.results || []).forEach(item => {
+              const opt = document.createElement('option');
+              opt.value = item.plaque;
+              // show plaque + client + compagnie + pays
+              const parts = [item.plaque];
+              if (item.client) parts.push(item.client);
+              if (item.compagnie) parts.push(item.compagnie);
+              if (item.pays) parts.push(item.pays);
+              opt.textContent = parts.join(' — ');
+              dl.appendChild(opt);
+              window._plaqueSuggestions[item.plaque] = item;
+            });
+          }).catch(()=>{ dl.innerHTML = ''; window._plaqueSuggestions = {}; });
+      }, 250);
+    });
+    // when user selects a suggestion (datalist select), the input's 'change' event fires
+    plaqueInput.addEventListener('change', function(){
+      const v = this.value.trim();
+      if (!v) return;
+      const item = (window._plaqueSuggestions || {})[v];
+      if (item) {
+        // prefer redirect with plaque; optionally could include entree_id
+        const url = new URL("{{ route('facturations.create') }}", window.location.origin);
+        url.searchParams.set('plaque', v);
+        // if an open entree exists pass entree_id to help prefilling
+        if (item.entree_id) url.searchParams.set('entree_id', item.entree_id);
+        window.location.href = url.toString();
+      }
+    });
+  }
+
 });
 </script>
 @endpush
