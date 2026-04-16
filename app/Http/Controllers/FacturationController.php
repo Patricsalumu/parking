@@ -162,14 +162,33 @@ class FacturationController extends Controller
         }
         if (!$entree) return response()->json(['found'=>false]);
 
-        // compute days (if sortie missing use now)
+        // compute duration (days/hours/minutes) between entree and sortie (or now)
         $start = $entree->date_entree;
         $end = $entree->date_sortie ?? Carbon::now();
-        $hours = $end->diffInHours($start);
-        $days = (int) ceil($hours / 24);
-        $days = max(1, $days);
+        $diffInMinutes = $end->diffInMinutes($start);
+        $days = intdiv($diffInMinutes, 60*24);
+        $hours = intdiv($diffInMinutes % (60*24), 60);
+        $minutes = $diffInMinutes % 60;
 
-        return response()->json(['found'=>true, 'entree'=>$entree, 'days'=>$days]);
+        // try to find an existing facturation for this entree (latest)
+        $fact = \App\Models\Facturation::where('entree_id', $entree->id)->latest()->first();
+
+        // build response payload
+        $payload = ['found' => true, 'entree' => $entree, 'duration' => ['days'=>$days,'hours'=>$hours,'minutes'=>$minutes]];
+        if ($fact) {
+            $payload['facturation'] = [
+                'id' => $fact->id,
+                'montant_paye' => $fact->montant_paye ?? 0,
+                'reduction' => $fact->reduction ?? 0,
+                'montant_total' => $fact->montant_total ?? 0,
+                'user_name' => $fact->user?->name ?? null,
+                'date_paiement' => $fact->date_paiement ?? null,
+            ];
+        }
+        // indicate if the entree is closed (date_sortie set)
+        $payload['entree_closed'] = $entree->date_sortie ? true : false;
+
+        return response()->json($payload);
     }
 
     public function show(Facturation $facturation)

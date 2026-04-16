@@ -26,20 +26,22 @@
     <p class="entree-field"><strong>Essieux:</strong> <span id="r_essieux"></span></p>
     <p class="entree-field"><strong>Observation:</strong> <span id="r_observation"></span></p>
     <p class="entree-field"><strong>Enregistré par:</strong> <span id="r_user"></span></p>
-    <p class="entree-field"><strong>Durée (jours calculés):</strong> <span id="r_days"></span></p>
+    <p class="entree-field"><strong>Durée:</strong> <span id="r_days"></span></p>
+    <p class="entree-field"><strong>Facturé par:</strong> <span id="r_fact_user"></span></p>
   </div>
 
   <form id="factForm" method="POST" action="{{ route('facturations.createFromEntree') }}">
     @csrf
     <input type="hidden" name="entree_id" id="entree_id">
     <div class="mb-3">
-      <label class="form-label">Catégorie facture</label>
+      <label class="form-label">Catégorie facture (depuis l'entrée)</label>
       <select id="categorie_id" name="categorie_id" class="form-select" required>
-        <option value="">-- Choisir catégorie --</option>
+        <option value="">-- Catégorie depuis entrée --</option>
         @foreach($categories as $c)
           <option value="{{ $c->id }}" data-price="{{ $c->prix_par_24h }}">{{ $c->nom }} ({{ $c->prix_par_24h }})</option>
         @endforeach
       </select>
+      <div class="form-text">Si l'entrée a une catégorie elle sera utilisée et verrouillée.</div>
     </div>
     <div class="mb-3">
       <label class="form-label">Jours calculés</label>
@@ -49,15 +51,21 @@
       <label class="form-label">Montant total</label>
       <input id="input_total" type="text" name="montant_total" class="form-control" readonly>
     </div>
-    @if($canReduce)
     <div class="mb-3">
       <label class="form-label">Réduction (montant)</label>
       <input id="input_reduction" type="number" step="0.01" min="0" name="reduction" class="form-control" value="0">
     </div>
-    @endif
+    <div class="mb-3">
+      <label class="form-label">Net à payer</label>
+      <input id="input_net" type="text" class="form-control" readonly>
+    </div>
     <div class="mb-3">
       <label class="form-label">Montant payé</label>
       <input id="input_paye" type="number" step="0.01" min="0" name="montant_paye" class="form-control" value="0">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Reste à payer</label>
+      <input id="input_reste" type="text" class="form-control" readonly>
     </div>
     <div class="d-flex gap-2">
       <button class="btn btn-primary" type="submit">Créer Facture</button>
@@ -93,15 +101,54 @@ function doPlaqueLookup(plaque) {
       document.getElementById('r_essieux').textContent = e.vehicule.essieux ?? '';
       document.getElementById('r_observation').textContent = e.observation ?? '';
       document.getElementById('r_user').textContent = e.user ? e.user.name : '';
-      document.getElementById('r_days').textContent = data.days;
+        // duration: show days/hours/minutes
+        const dur = data.duration || {days:0,hours:0,minutes:0};
+        const durLabel = dur.days + 'j ' + dur.hours + 'h ' + dur.minutes + 'm';
+        document.getElementById('r_days').textContent = durLabel;
       document.getElementById('entree_id').value = e.id;
-      document.getElementById('input_days').value = data.days;
+        document.getElementById('input_days').value = dur.days;
       // reset totals
-      document.getElementById('categorie_id').value = '';
-      document.getElementById('input_total').value = '';
-      @if($canReduce)
+        // set category from entree if present and lock it
+        if (e.categorie_id) {
+          document.getElementById('categorie_id').value = e.categorie_id;
+          document.getElementById('categorie_id').disabled = true;
+        } else {
+          document.getElementById('categorie_id').value = '';
+          document.getElementById('categorie_id').disabled = false;
+        }
+        document.getElementById('input_total').value = '';
         document.getElementById('input_reduction').value = 0;
-      @endif
+        document.getElementById('input_net').value = '';
+        document.getElementById('input_paye').value = 0;
+        document.getElementById('input_paye').disabled = false;
+        document.getElementById('input_reduction').disabled = false;
+
+        // if an existing facture exists, prefill and lock reduction and montant_paye
+      if (data.facturation) {
+        const f = data.facturation;
+        document.getElementById('input_reduction').value = f.reduction ?? 0;
+        document.getElementById('input_reduction').disabled = true;
+        // montant_paye should remain editable unless the entree is closed or facture has a payment date
+        document.getElementById('input_paye').value = f.montant_paye ?? 0;
+        const entreeClosed = !!data.entree_closed;
+        const factPaidDate = !!f.date_paiement;
+        if (entreeClosed || factPaidDate) {
+          document.getElementById('input_paye').disabled = true;
+        } else {
+          document.getElementById('input_paye').disabled = false;
+        }
+          // show who created the facture
+          document.getElementById('r_fact_user').textContent = f.user_name || '';
+          // compute total from category price and days, but if fact had montant_total, prefer that for display
+          document.getElementById('input_total').value = (f.montant_total ?? '').toString();
+          const net = (f.montant_total ?? 0);
+          document.getElementById('input_net').value = Number(net).toFixed(2);
+          document.getElementById('input_reste').value = (Number(net) - Number(f.montant_paye ?? 0)).toFixed(2);
+          // disable submit as facture already exists (creation of duplicate not allowed)
+          document.querySelector('#factForm button[type=submit]').disabled = true;
+        } else {
+          document.getElementById('r_fact_user').textContent = '';
+        }
     });
 }
 
@@ -119,6 +166,55 @@ document.getElementById('searchPlaque').addEventListener('keydown', function(e){
 document.getElementById('searchPlaque').addEventListener('blur', function(){
   doPlaqueLookup(this.value.trim());
 });
+
+// dynamic suggestions for plaques (like index page)
+;(function(){
+  const plaqueInput = document.getElementById('searchPlaque');
+  if (!plaqueInput) return;
+  let dl = document.getElementById('plaques_list');
+  if (!dl) {
+    dl = document.createElement('datalist');
+    dl.id = 'plaques_list';
+    document.body.appendChild(dl);
+  }
+  plaqueInput.setAttribute('list','plaques_list');
+  let debounceTimer = null;
+  plaqueInput.addEventListener('input', function(){
+    const q = this.value.trim();
+    if (debounceTimer) clearTimeout(debounceTimer);
+    if (!q) { dl.innerHTML = ''; window._plaqueSuggestions = {}; return; }
+    debounceTimer = setTimeout(()=>{
+      fetch("{{ route('vehicules.searchPlaques') }}?q="+encodeURIComponent(q), {credentials:'same-origin'})
+        .then(r=> r.ok ? r.json() : Promise.reject())
+            .then(data=>{
+              dl.innerHTML = '';
+              window._plaqueSuggestions = {};
+              (data.results || []).forEach(item => {
+                const opt = document.createElement('option');
+                opt.value = item.plaque;
+                opt.textContent = [item.plaque, item.client, item.compagnie, item.pays].filter(Boolean).join(' — ');
+                dl.appendChild(opt);
+                window._plaqueSuggestions[item.plaque] = item;
+              });
+              // if the current query exactly matches a known suggestion, trigger immediate lookup
+              if (q && window._plaqueSuggestions[q]) {
+                doPlaqueLookup(q);
+              }
+            }).catch(()=>{ dl.innerHTML = ''; window._plaqueSuggestions = {}; });
+    }, 200);
+  });
+
+  // when a suggestion is selected, trigger lookup
+  plaqueInput.addEventListener('change', function(){
+    const v = this.value.trim();
+    if (!v) return;
+    const item = (window._plaqueSuggestions || {})[v];
+    if (item) {
+      // run the existing lookup to populate the create form
+      doPlaqueLookup(v);
+    }
+  });
+})();
 
 // toggle show/hide entree fields via icon in header
 document.getElementById('toggleInfoIcon').addEventListener('click', function(e){
@@ -146,17 +242,17 @@ function computeTotal() {
   if (!sel.value) { document.getElementById('input_total').value = ''; return; }
   const price = Number(sel.options[sel.selectedIndex].dataset.price) || 0;
   let total = days * price;
-  @if($canReduce)
-    const red = Number(document.getElementById('input_reduction').value) || 0;
-    if (red > 0) total = Math.max(0, total - red);
-  @endif
+  const red = Number(document.getElementById('input_reduction').value) || 0;
+  const net = Math.max(0, total - red);
   document.getElementById('input_total').value = total.toFixed(2);
-  // clamp montant_paye to not exceed total
+  document.getElementById('input_net').value = net.toFixed(2);
+  // clamp montant_paye to not exceed net
   const payEl = document.getElementById('input_paye');
   if (payEl) {
     let pay = Number(payEl.value) || 0;
-    if (pay > total) pay = total;
+    if (pay > net) pay = net;
     payEl.value = pay.toFixed(2);
+    document.getElementById('input_reste').value = (net - pay).toFixed(2);
   }
 }
 
@@ -168,9 +264,10 @@ document.getElementById('categorie_id').addEventListener('change', computeTotal)
 const payEl = document.getElementById('input_paye');
 if (payEl) {
   payEl.addEventListener('input', function(){
-    const total = Number(document.getElementById('input_total').value) || 0;
-    let v = Number(this.value) || 0;
-    if (v > total) this.value = total.toFixed(2);
+      const net = Number(document.getElementById('input_net').value) || 0;
+      let v = Number(this.value) || 0;
+      if (v > net) this.value = net.toFixed(2);
+      document.getElementById('input_reste').value = (net - Number(this.value || 0)).toFixed(2);
   });
 }
 </script>
