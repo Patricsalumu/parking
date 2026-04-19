@@ -76,7 +76,7 @@ class FacturationController extends Controller
         ];
         $callback = function() use ($rows, $start, $end) {
             $out = fopen('php://output','w');
-            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Export Date', format_dt(\Carbon\Carbon::now())]);
             fputcsv($out, ['Start Date', $start]);
             fputcsv($out, ['End Date', $end]);
             fputcsv($out, []);
@@ -84,7 +84,7 @@ class FacturationController extends Controller
             foreach ($rows as $r) {
                 fputcsv($out, [
                     $r->id,
-                    $r->created_at ? $r->created_at->format('Y-m-d H:i') : '',
+                    $r->created_at ? format_dt($r->created_at) : '',
                     $r->entree_id,
                     $r->entree?->vehicule?->plaque,
                     $r->entree?->client?->nom,
@@ -290,7 +290,7 @@ class FacturationController extends Controller
                 if ($paye > $fact->montant_total) $paye = $fact->montant_total;
             }
             $fact->montant_paye = $paye;
-            $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
+            $fact->date_paiement = $paye > 0 ? Carbon::now()->utc() : null;
             $fact->save();
         } else {
             // build a Facturation instance (not yet persisted), attach relations so calculateFromEntree can use them
@@ -312,7 +312,7 @@ class FacturationController extends Controller
                 if ($paye > $fact->montant_total) $paye = $fact->montant_total;
             }
             $fact->montant_paye = $paye;
-            $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
+            $fact->date_paiement = $paye > 0 ? Carbon::now()->utc() : null;
 
                 // ensure client account (411000) exists before persisting
                 $clientCompte = Compte::where('numero','411000')->first();
@@ -359,7 +359,7 @@ class FacturationController extends Controller
                 JournalCompte::create([
                     'libelle' => $libelle,
                     'montant' => $fact->montant_total,
-                    'date' => Carbon::now()->toDateString(),
+                    'date' => Carbon::now()->utc()->toDateString(),
                     'compte_debit_id' => $clientCompte->id,
                     'compte_credit_id' => $produitCompte->id,
                     'type' => 'ventes',
@@ -385,7 +385,7 @@ class FacturationController extends Controller
                     JournalCompte::create([
                         'libelle' => $lib,
                         'montant' => $fact->montant_paye,
-                        'date' => $fact->date_paiement ? \Carbon\Carbon::parse($fact->date_paiement)->toDateString() : Carbon::now()->toDateString(),
+                        'date' => $fact->date_paiement ? \Carbon\Carbon::parse($fact->date_paiement)->toDateString() : Carbon::now()->utc()->toDateString(),
                         'compte_debit_id' => $userCaisseId,
                         'compte_credit_id' => $clientCompte->id,
                         'type' => 'caisses',

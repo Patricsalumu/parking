@@ -19,7 +19,8 @@ class DatabaseSeeder extends Seeder
         //     'email' => 'test@example.com',
         // ]);
 
-        $this->call([\Database\Seeders\UserSeeder::class]);
+        // Ensure accounting master data exists before creating users that reference comptes
         $this->call([\Database\Seeders\ComptabiliteSeeder::class]);
+        $this->call([\Database\Seeders\UserSeeder::class]);
     }
 }

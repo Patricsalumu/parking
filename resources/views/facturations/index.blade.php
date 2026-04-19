@@ -79,7 +79,7 @@
         <td>{{ number_format($f->montant_total,2) }}</td>
         <td>{{ number_format($f->montant_paye ?? 0,2) }}</td>
         <td>{{ number_format(($f->montant_total - ($f->montant_paye ?? 0)),2) }}</td>
-        <td>{{ $f->updated_at ? $f->updated_at->format('Y-m-d H:i') : ($f->created_at ? $f->created_at->format('Y-m-d H:i') : '—') }}</td>
+        <td>{{ $f->updated_at ? format_dt($f->updated_at) : ($f->created_at ? format_dt($f->created_at) : '—') }}</td>
         <td>
           <button class="btn btn-sm btn-success btn-pay" data-id="{{ $f->id }}" data-balance="{{ $f->montant_total - $f->montant_paye }}">Payer</button>
           <a href="{{ route('facturations.print', $f) }}" target="_blank" class="btn btn-sm btn-primary">Imprimer</a>

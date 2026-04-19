@@ -35,6 +35,7 @@ class SettingsController extends Controller
             'id_nat' => 'nullable|string',
             'num_impot' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
+            'timezone' => 'nullable|string|in:Africa/Kinshasa,Africa/Lubumbashi',
         ]);
         $entreprise = Entreprise::first();
         if ($request->hasFile('logo')) {

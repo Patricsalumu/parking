@@ -45,10 +45,12 @@ class PaiementController extends Controller
             'note' => 'nullable|string',
         ]);
 
+        $datePaiement = isset($data['date_paiement']) && $data['date_paiement'] ? Carbon::parse($data['date_paiement'])->utc() : Carbon::now()->utc();
+
         $paiement = Paiement::create([
             'facturation_id' => $data['facturation_id'],
             'montant' => $data['montant'],
-            'date_paiement' => $data['date_paiement'] ?? Carbon::now(),
+            'date_paiement' => $datePaiement,
             'mode' => $data['mode'] ?? null,
             'note' => $data['note'] ?? null,
             'user_id' => auth()->id(),

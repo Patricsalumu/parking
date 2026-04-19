@@ -10,7 +10,7 @@
   </div>
   <div style="text-align:center;margin-top:8px;">
     <div style="font-weight:700">Facture N° {{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</div>
-    <div style="font-size:0.95em">{{ $facturation->created_at ? \Carbon\Carbon::parse($facturation->created_at)->format('Y-m-d H:i') : '' }}</div>
+    <div style="font-size:0.95em">{{ $facturation->created_at ? format_dt($facturation->created_at) : '' }}</div>
   </div>
 
   <hr>
@@ -21,7 +21,7 @@
     <p><strong>Plaque :</strong> {{ $facturation->entree->vehicule?->plaque ?? '-' }}</p>
     <p><strong>Client :</strong> {{ $facturation->entree->client?->nom ?? '-' }}</p>
     <p><strong>Compagnie :</strong> {{ $facturation->entree->vehicule?->compagnie ?? '-' }}</p>
-    <p><strong>Date entrée :</strong> {{ $facturation->entree->date_entree ? \Carbon\Carbon::parse($facturation->entree->date_entree)->format('Y-m-d H:i') : '-' }}</p>
+    <p><strong>Date entrée :</strong> {{ $facturation->entree->date_entree ? format_dt($facturation->entree->date_entree) : '-' }}</p>
   </div>
 
   <hr>

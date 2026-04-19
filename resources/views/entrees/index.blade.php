@@ -68,8 +68,8 @@
         <td>{{ $e->vehicule?->plaque }}</td>
         <td>{{ $e->categorie?->nom }}</td>
         <td>{{ $e->client?->nom }}</td>
-        <td>{{ $e->date_entree ? $e->date_entree->format('Y-m-d H:i') : '' }}</td>
-        <td>{{ $e->date_sortie ? $e->date_sortie->format('Y-m-d H:i') : '' }}</td>
+        <td>{{ $e->date_entree ? format_dt($e->date_entree) : '' }}</td>
+        <td>{{ $e->date_sortie ? format_dt($e->date_sortie) : '' }}</td>
         @php
           if ($e->date_entree) {
             $start = \Carbon\Carbon::parse($e->date_entree);

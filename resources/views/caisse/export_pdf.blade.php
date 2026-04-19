@@ -17,7 +17,7 @@
   <hr style="margin:8px 0 12px"/>
   <div style="font-size:12px;margin-bottom:6px">
     <div>Période : {{ $start ?? '-' }} → {{ $end ?? '-' }}</div>
-    <div>Exporté : {{ $exportDate ?? \Carbon\Carbon::now()->format('Y-m-d H:i') }}</div>
+    <div>Exporté : {{ $exportDate ?? format_dt(\Carbon\Carbon::now()) }}</div>
     @if(isset($compte_id) && $compte_id)
       @php $comp = \App\Models\Compte::find($compte_id); @endphp
       <div>Compte filtré : {{ $comp?->numero ?? '-' }} {{ $comp?->nom ? ' - '.$comp->nom : '' }}</div>

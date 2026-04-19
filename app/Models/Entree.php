@@ -24,13 +24,15 @@ class Entree extends Model
     public function getDateEntreeAttribute($value)
     {
         if (empty($value)) return null;
-        return $value instanceof Carbon ? $value : Carbon::parse($value);
+        // parse stored timestamps as UTC to avoid timezone ambiguity
+        return $value instanceof Carbon ? $value->copy()->setTimezone('UTC') : Carbon::parse($value, 'UTC');
     }
 
     public function getDateSortieAttribute($value)
     {
         if (empty($value)) return null;
-        return $value instanceof Carbon ? $value : Carbon::parse($value);
+        // parse stored timestamps as UTC to avoid timezone ambiguity
+        return $value instanceof Carbon ? $value->copy()->setTimezone('UTC') : Carbon::parse($value, 'UTC');
     }
 
     public function user()

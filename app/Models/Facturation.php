@@ -40,6 +40,12 @@ class Facturation extends Model
         return $this->belongsTo(\App\Models\User::class);
     }
 
+    public function getDatePaiementAttribute($value)
+    {
+        if (empty($value)) return null;
+        return $value instanceof Carbon ? $value->copy()->setTimezone('UTC') : Carbon::parse($value, 'UTC');
+    }
+
     public function calculateFromEntree()
     {
         $entree = $this->entree;

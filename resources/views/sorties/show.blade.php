@@ -3,9 +3,9 @@
     <div class="col-md-6">
       <div class="mb-2"><strong>Client:</strong> {{ $entree->client?->nom ?? 'N/C' }}</div>
       <div class="mb-2"><strong>Numero:</strong> {{ $entree->numero_formatted ?? $entree->numero ?? $entree->id }}</div>
-      <div class="mb-2"><strong>Date entrée:</strong> {{ $entree->date_entree ? \Carbon\Carbon::parse($entree->date_entree)->format('Y-m-d H:i') : '' }}</div>
+      <div class="mb-2"><strong>Date entrée:</strong> {{ $entree->date_entree ? format_dt($entree->date_entree) : '' }}</div>
       <div class="mb-2"><strong>Utilisateur entrée:</strong> {{ $entree->user?->name }}</div>
-      <div class="mb-2"><strong>Date sortie:</strong> {{ $entree->date_sortie ? \Carbon\Carbon::parse($entree->date_sortie)->format('Y-m-d H:i') : '-' }}</div>
+      <div class="mb-2"><strong>Date sortie:</strong> {{ $entree->date_sortie ? format_dt($entree->date_sortie) : '-' }}</div>
       <div class="mb-2"><strong>Utilisateur sortie:</strong> {{ $entree->sortieUser?->name ?? '-' }}</div>
       <hr>
       <h6>Facturation</h6>
@@ -16,7 +16,7 @@
         <div><strong>Total:</strong> {{ number_format($fact->montant_total ?? 0,2) }}</div>
         <div><strong>Payé:</strong> {{ number_format($fact->montant_paye ?? 0,2) }}</div>
         <div><strong>Reste:</strong> {{ number_format( ($fact->montant_total - ($fact->montant_paye ?? 0)) ,2) }}</div>
-        <div><strong>Dernière mise à jour facture:</strong> {{ $fact->updated_at ? \Carbon\Carbon::parse($fact->updated_at)->format('Y-m-d H:i') : '-' }}</div>
+        <div><strong>Dernière mise à jour facture:</strong> {{ $fact->updated_at ? format_dt($fact->updated_at) : '-' }}</div>
         @if(isset($sinceBilled) && $sinceBilled)
           <div><strong>Depuis facturation:</strong> <span class="{{ $entree->date_sortie ? 'text-danger' : '' }}">{{ $sinceBilled['days'] }}j {{ $sinceBilled['hours'] }}h {{ $sinceBilled['minutes'] }}m</span></div>
         @endif

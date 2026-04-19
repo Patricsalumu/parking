@@ -76,7 +76,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('settings/classes', [\App\Http\Controllers\SettingsController::class,'classes'])->name('settings.classes');
     Route::get('settings/comptes', [\App\Http\Controllers\SettingsController::class,'comptes'])->name('settings.comptes');
     // classes & comptes resources
-    Route::resource('classes', \App\Http\Controllers\ClasseController::class);
+    // Use 'classe' as the route parameter name so it matches controller method signatures
+    Route::resource('classes', \App\Http\Controllers\ClasseController::class)->parameters(['classes' => 'classe']);
     Route::resource('comptes', \App\Http\Controllers\CompteController::class);
     // Grand livre and accounting reports (must come before resource route to avoid collision)
     Route::get('journal_comptes/grand-livre', [\App\Http\Controllers\JournalCompteController::class,'grandLivreIndex'])->name('journal_comptes.grand_index');

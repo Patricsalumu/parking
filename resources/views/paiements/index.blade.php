@@ -13,7 +13,7 @@
         <td>{{ $p->id }}</td>
         <td>{{ $p->facturation_id }}</td>
         <td>{{ $p->montant }}</td>
-        <td>{{ $p->date_paiement }}</td>
+        <td>{{ format_dt($p->date_paiement) }}</td>
       </tr>
     @endforeach
   </tbody>

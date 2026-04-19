@@ -4,24 +4,17 @@
 <a href="{{ route('facturations.index') }}" class="btn btn-secondary mb-2">← Retour</a>
 <h3>Facturation #{{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</h3>
 <div class="card p-3">
-  @php
-    $fmt = function($d, $format = 'Y-m-d H:i') {
-      if (!$d) return null;
-      if (is_string($d)) return \Carbon\Carbon::parse($d)->format($format);
-      if (method_exists($d, 'format')) return $d->format($format);
-      return null;
-    };
-  @endphp
+  @php // format_dt helper is used below to show timezone-aware dates with label @endphp
   <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>
   <p><strong>Numero Facture:</strong> {{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</p>
-  <p><strong>Date facturation:</strong> {{ $fmt($facturation->updated_at) ?? $fmt($facturation->created_at) ?? '—' }}</p>
+  <p><strong>Date facturation:</strong> {{ $facturation->updated_at ? format_dt($facturation->updated_at) : ($facturation->created_at ? format_dt($facturation->created_at) : '—') }}</p>
   <p><strong>Véhicule - Plaque:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
   <p><strong>Marque:</strong> {{ $facturation->entree->vehicule?->marque }}</p>
   <p><strong>Pays:</strong> {{ $facturation->entree->vehicule?->pays }}</p>
   <p><strong>Essieux:</strong> {{ $facturation->entree->vehicule?->essieux }}</p>
   <p><strong>Client:</strong> {{ $facturation->entree->client?->nom }}</p>
-  <p><strong>Date entrée:</strong> {{ $fmt($facturation->entree->date_entree) ?? '—' }}</p>
-  <p><strong>Date sortie:</strong> {{ $fmt($facturation->entree->date_sortie) ?? '—' }}</p>
+  <p><strong>Date entrée:</strong> {{ $facturation->entree->date_entree ? format_dt($facturation->entree->date_entree) : '—' }}</p>
+  <p><strong>Date sortie:</strong> {{ $facturation->entree->date_sortie ? format_dt($facturation->entree->date_sortie) : '—' }}</p>
   <p><strong>Durée (jours enregistrés):</strong> {{ $facturation->duree }}</p>
   @php
     $start = $facturation->entree->date_entree ? \Carbon\Carbon::parse($facturation->entree->date_entree) : null;
@@ -55,7 +48,7 @@
     <ul>
       @foreach($facturation->paiements as $p)
         <li>
-          {{ $fmt($p->date_paiement) ?? $fmt($p->created_at) }} — {{ number_format($p->montant,2) }}
+          {{ $p->date_paiement ? format_dt($p->date_paiement) : ($p->created_at ? format_dt($p->created_at) : '') }} — {{ number_format($p->montant,2) }}
           ({{ $p->mode ?? '—' }})
           @if($p->user)
             — Reçu par: {{ $p->user->name }}

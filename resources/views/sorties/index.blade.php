@@ -78,8 +78,8 @@
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->pays ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->essieux ?? '-' }}</td>
       <td>{{ $e->client?->nom }}</td>
-      <td>{{ $e->date_entree ? \Carbon\Carbon::parse($e->date_entree)->format('Y-m-d H:i') : '' }}</td>
-      <td class="entree-date-sortie">{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
+      <td>{{ $e->date_entree ? format_dt($e->date_entree) : '' }}</td>
+      <td class="entree-date-sortie">{{ $e->date_sortie ? format_dt($e->date_sortie) : '-' }}</td>
       <td>{{ $e->user?->name }}</td>
       <td>
         @if($e->facturation)

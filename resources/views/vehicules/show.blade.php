@@ -37,8 +37,8 @@
             <tr class="{{ $en->date_sortie ? 'table-danger' : '' }}">
               <td>{{ $en->id }}</td>
               <td>{{ $en->numero_formatted ?? $en->numero }}</td>
-              <td>{{ $en->date_entree ? \Carbon\Carbon::parse($en->date_entree)->format('Y-m-d H:i') : '' }}</td>
-              <td>{{ $en->date_sortie ? \Carbon\Carbon::parse($en->date_sortie)->format('Y-m-d H:i') : '' }}</td>
+              <td>{{ $en->date_entree ? format_dt($en->date_entree) : '' }}</td>
+              <td>{{ $en->date_sortie ? format_dt($en->date_sortie) : '' }}</td>
               <td>@if($en->facturation) #{{ $en->facturation->numero_formatted ?? $en->facturation->numero ?? $en->facturation->id }} @else - @endif</td>
               <td>@if($en->facturation) {{ number_format($en->facturation->montant_total,2) }} @else - @endif</td>
               <td>@if($en->facturation) {{ number_format($en->facturation->montant_paye ?? 0,2) }} @else - @endif</td>

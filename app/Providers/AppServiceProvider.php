@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Ensure helpers are loaded even if composer autoload wasn't regenerated yet
+        if (! function_exists('format_dt')) {
+            $helpers = app_path('helpers.php');
+            if (file_exists($helpers)) {
+                require_once $helpers;
+            }
+        }
     }
 }

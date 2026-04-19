@@ -13,6 +13,13 @@ class Paiement extends Model
 
     protected $dates = ['date_paiement'];
 
+    public function getDatePaiementAttribute($value)
+    {
+        if (empty($value)) return null;
+        // parse stored timestamps as UTC
+        return $value instanceof \Carbon\Carbon ? $value->copy()->setTimezone('UTC') : \Carbon\Carbon::parse($value, 'UTC');
+    }
+
     public function facturation()
     {
         return $this->belongsTo(Facturation::class);

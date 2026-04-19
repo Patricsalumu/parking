@@ -89,7 +89,7 @@ class EntreeController extends Controller
 
         $callback = function() use ($rows, $start, $end) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Export Date', format_dt(\Carbon\Carbon::now())]);
             fputcsv($out, ['Start Date', $start]);
             fputcsv($out, ['End Date', $end]);
             fputcsv($out, []);
@@ -97,7 +97,7 @@ class EntreeController extends Controller
             foreach ($rows as $r) {
                 fputcsv($out, [
                     $r->id,
-                    $r->date_entree ? \Carbon\Carbon::parse($r->date_entree)->format('Y-m-d H:i') : '',
+                    $r->date_entree ? format_dt($r->date_entree) : '',
                     $r->vehicule?->plaque,
                     $r->vehicule?->compagnie,
                     $r->client?->nom,
@@ -132,7 +132,7 @@ class EntreeController extends Controller
         $rows = $query->orderBy('date_entree','desc')->get();
 
         // If DomPDF is installed use it, otherwise return HTML for browser print
-        $exportDate = \Carbon\Carbon::now()->format('Y-m-d H:i');
+        $exportDate = format_dt(\Carbon\Carbon::now());
         if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
             $pdf = app()->make('dompdf.wrapper');
             $pdf->loadView('entrees.export_pdf', compact('rows','start','end','exportDate'));
@@ -214,7 +214,8 @@ class EntreeController extends Controller
             'user_id' => Auth::id(),
             'vehicule_id' => $data['vehicule_id'],
             'client_id' => $data['client_id'] ?? null,
-            'date_entree' => Carbon::now(),
+            // store entry timestamp in UTC to keep DB canonical
+            'date_entree' => Carbon::now()->utc(),
             'observation' => $data['observation'] ?? null,
             'categorie_id' => $data['categorie_id'] ?? null,
         ]);

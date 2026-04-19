@@ -33,6 +33,12 @@
   </div>
 
   <div class="mb-3"><label>Adresse</label><textarea name="adresse" class="form-control">{{ $entreprise->adresse ?? '' }}</textarea></div>
+  <div class="mb-3"><label>Fuseau horaire d'affichage</label>
+    <select name="timezone" class="form-control">
+      <option value="Africa/Kinshasa" {{ (isset($entreprise) && ($entreprise->timezone ?? 'Africa/Kinshasa')=='Africa/Kinshasa')? 'selected' : '' }}>Kinshasa (UTC+1)</option>
+      <option value="Africa/Lubumbashi" {{ (isset($entreprise) && ($entreprise->timezone ?? '')=='Africa/Lubumbashi')? 'selected' : '' }}>Lubumbashi (UTC+2)</option>
+    </select>
+  </div>
   <button class="btn btn-success">Save</button>
 </form>
 @endsection

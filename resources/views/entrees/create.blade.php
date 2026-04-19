@@ -72,7 +72,7 @@
     <label>Pays <span class="text-danger">*</span></label>
     @php
       $paysList = [
-        'Algérie','Angola','Bénin','Botswana','Burkina Faso','Burundi','Cabo Verde','Cameroun','République centrafricaine','Tchad','Comores','République du Congo','RDC','Côte d\'Ivoire','Djibouti','Égypte','Guinée équatoriale','Érythrée','Eswatini','Éthiopie','Gabon','Gambie','Ghana','Guinée','Guinée-Bissau','Kenya','Lesotho','Libéria','Libye','Madagascar','Malawi','Mali','Mauritanie','Maurice','Maroc','Mozambique','Namibie','Niger','Nigeria','Rwanda','Sao Tomé-et-Principe','Sénégal','Seychelles','Sierra Leone','Somalie','Afrique du Sud','Soudan du Sud','Soudan','Tanzanie','Togo','Tunisie','Ouganda','Zambie','Zimbabwe'
+        'Algérie','Angola','Bénin','Botswana','Burkina Faso','Burundi','Cap vert','Cameroun','République centrafricaine','Tchad','Comores','République du Congo','RDC','Côte d\'Ivoire','Djibouti','Égypte','Guinée équatoriale','Érythrée','Eswatini','Éthiopie','Gabon','Gambie','Ghana','Guinée','Guinée-Bissau','Kenya','Lesotho','Libéria','Libye','Madagascar','Malawi','Mali','Mauritanie','Maurice','Maroc','Mozambique','Namibie','Niger','Nigeria','Rwanda','Sao Tomé-et-Principe','Sénégal','Seychelles','Sierra Leone','Somalie','Afrique du Sud','Soudan du Sud','Soudan','Tanzanie','Togo','Tunisie','Ouganda','Zambie','Zimbabwe'
       ];
       sort($paysList, SORT_STRING);
     @endphp

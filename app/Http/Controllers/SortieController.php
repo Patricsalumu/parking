@@ -125,7 +125,7 @@ class SortieController extends Controller
 
         // Set sortie on entree using facturation updated_at (apurement backdates sortie)
         try {
-            $dateForSortie = $fact->updated_at ? Carbon::parse($fact->updated_at) : Carbon::now();
+            $dateForSortie = $fact->updated_at ? Carbon::parse($fact->updated_at)->utc() : Carbon::now()->utc();
             $entree->date_sortie = $dateForSortie;
             $entree->sortie_user_id = auth()->id();
             $entree->sortie = 1;
@@ -139,10 +139,10 @@ class SortieController extends Controller
 
         // prepare response payload
         $entree->load('vehicule','sortieUser');
-        $ds = $entree->date_sortie ? Carbon::parse($entree->date_sortie)->format('Y-m-d H:i') : null;
+        $ds = $entree->date_sortie ? format_dt($entree->date_sortie) : null;
         $since = null;
         if ($fact->updated_at) {
-            $diff = Carbon::now()->diff(Carbon::parse($fact->updated_at));
+            $diff = Carbon::now()->utc()->diff(Carbon::parse($fact->updated_at)->utc());
             $since = $diff->d.'j '.$diff->h.'h '.$diff->i.'m';
         }
 
@@ -189,7 +189,7 @@ class SortieController extends Controller
             return back()->with('error','Impossible de faire la sortie: la date de paiement n\'est pas enregistrée.');
         }
 
-        $entree->date_sortie = Carbon::now();
+        $entree->date_sortie = Carbon::now()->utc();
         $entree->sortie_user_id = auth()->id();
         // mark as sortie
         $entree->sortie = 1;
@@ -197,7 +197,7 @@ class SortieController extends Controller
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'date_sortie' => $entree->date_sortie->toDateTimeString(),
+                'date_sortie' => format_dt($entree->date_sortie),
                 'sortie_user' => auth()->user()->name,
                 'sortie' => $entree->sortie,
             ]);

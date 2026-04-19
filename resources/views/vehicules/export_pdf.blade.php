@@ -17,7 +17,7 @@
   <hr style="margin:8px 0 12px"/>
   <div style="font-size:12px;margin-bottom:6px">
     <div>Période : {{ $start ?? '-' }} → {{ $end ?? '-' }}</div>
-    <div>Exporté : {{ $exportDate ?? \Carbon\Carbon::now()->format('Y-m-d H:i') }}</div>
+    <div>Exporté : {{ $exportDate ?? format_dt(\Carbon\Carbon::now()) }}</div>
   </div>
   <h3 style="margin:4px 0 12px">Véhicules Report</h3>
 

@@ -17,7 +17,7 @@
   <hr style="margin:8px 0 12px"/>
   <div style="font-size:12px;margin-bottom:6px">
     <div>Période : {{ $start ?? '-' }} → {{ $end ?? '-' }}</div>
-    <div>Exporté : {{ $exportDate ?? \Carbon\Carbon::now()->format('Y-m-d H:i') }}</div>
+    <div>Exporté : {{ $exportDate ?? format_dt(\Carbon\Carbon::now()) }}</div>
   </div>
   <h3 style="margin:4px 0 12px">Export Facturations</h3>
 
@@ -40,7 +40,7 @@
       @foreach($rows as $r)
         <tr>
           <td style="padding:6px; border:1px solid #ddd">{{ $r->id }}</td>
-          <td style="padding:6px; border:1px solid #ddd">{{ $r->created_at ? \Carbon\Carbon::parse($r->created_at)->format('Y-m-d H:i') : '' }}</td>
+          <td style="padding:6px; border:1px solid #ddd">{{ $r->created_at ? format_dt($r->created_at) : '' }}</td>
           <td style="padding:6px; border:1px solid #ddd">{{ $r->entree_id }}</td>
           <td style="padding:6px; border:1px solid #ddd">{{ $r->entree?->vehicule?->plaque }}</td>
           <td style="padding:6px; border:1px solid #ddd">{{ $r->entree?->client?->nom }}</td>
