@@ -84,6 +84,23 @@ class Entree extends Model
                 $model->numero = $max + 1;
             }
         });
+        // prevent accidental modifications of the original entry timestamp
+        static::updating(function ($model) {
+            if ($model->isDirty('date_entree')) {
+                try {
+                    \Log::warning('Blocked modification of date_entree on Entree', [
+                        'entree_id' => $model->id ?? null,
+                        'original' => $model->getOriginal('date_entree'),
+                        'attempted' => $model->date_entree,
+                        'user_id' => auth()->id() ?? null,
+                    ]);
+                } catch (\Exception $e) {
+                    // logging must never block the update flow; swallow exceptions
+                }
+                // revert to original value to ensure immutability
+                $model->date_entree = $model->getOriginal('date_entree');
+            }
+        });
     }
 
     public function getNumeroFormattedAttribute()

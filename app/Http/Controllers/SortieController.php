@@ -14,6 +14,13 @@ class SortieController extends Controller
         $this->middleware('auth');
     }
 
+    private function isExemptCategory(Entree $entree)
+    {
+        $catName = strtolower($entree->categorie?->nom ?? '');
+        if (!$catName) return false;
+        return (str_contains($catName,'transbord') || str_contains($catName,'tranbord') || str_contains($catName,'cant') || str_contains($catName,'canter'));
+    }
+
     public function index()
     {
         // show all entries (exited or not) for the given date range (default today)
@@ -76,12 +83,20 @@ class SortieController extends Controller
     {
         $entree->load('vehicule','client','user','facturation.categorie','categorie');
         $fact = $entree->facturation;
+        // exempt categories (do not require payment to exit)
+        $isExemptCategory = false;
+        $catName = strtolower($entree->categorie?->nom ?? '');
+        if ($catName && (str_contains($catName,'transbord') || str_contains($catName,'tranbord') || str_contains($catName,'cant') || str_contains($catName,'canter'))) {
+            $isExemptCategory = true;
+        }
         $canExit = false;
         if ($fact) {
             $total = $fact->montant_total ?? 0;
             $paye = $fact->montant_paye ?? 0;
             $canExit = ($paye >= $total);
         }
+        // allow exit for exempt categories even without facture/payment
+        if ($isExemptCategory) $canExit = true;
         // compute time since billing (used to allow immediate sortie after apurement)
         $sinceBilled = null;
         $minutesSince = null;
@@ -114,9 +129,10 @@ class SortieController extends Controller
             }
         }
 
-        $entree->load('facturation');
+        $entree->load('facturation','categorie');
         $fact = $entree->facturation;
-        if (!$fact) {
+        // If no facture and category is not exempt, we cannot apurer
+        if (!$fact && !$this->isExemptCategory($entree)) {
             if ($isAjax) return response()->json(['success' => false, 'message' => 'Aucune facture associée à cette entrée.'], 404);
             return back()->with('error','Aucune facture associée à cette entrée.');
         }
@@ -125,7 +141,7 @@ class SortieController extends Controller
 
         // Set sortie on entree using facturation updated_at (apurement backdates sortie)
         try {
-            $dateForSortie = $fact->updated_at ? Carbon::parse($fact->updated_at)->utc() : Carbon::now()->utc();
+            $dateForSortie = $fact && $fact->updated_at ? Carbon::parse($fact->updated_at)->utc() : Carbon::now()->utc();
             $entree->date_sortie = $dateForSortie;
             $entree->sortie_user_id = auth()->id();
             $entree->sortie = 1;
@@ -174,24 +190,27 @@ class SortieController extends Controller
             }
         }
 
-        $entree->load('facturation');
+        $entree->load('facturation','categorie');
         $fact = $entree->facturation;
-        if (!$fact) {
-            return back()->with('error','Impossible de faire la sortie: facture introuvable pour cette entrée.');
-        }
-        $total = $fact->montant_total ?? 0;
-        $paye = $fact->montant_paye ?? 0;
-        if ($paye < $total) {
-            return back()->with('error','Impossible de faire la sortie: la facture n\'est pas encore apurée.');
-        }
-        // require payment date to exist (paid and recorded)
-        if (empty($fact->date_paiement)) {
-            return back()->with('error','Impossible de faire la sortie: la date de paiement n\'est pas enregistrée.');
+        // if category is exempt allow exit without facture/payment
+        if (!$this->isExemptCategory($entree)) {
+            if (!$fact) {
+                return back()->with('error','Impossible de faire la sortie: facture introuvable pour cette entrée.');
+            }
+            $total = $fact->montant_total ?? 0;
+            $paye = $fact->montant_paye ?? 0;
+            if ($paye < $total) {
+                return back()->with('error','Impossible de faire la sortie: la facture n\'est pas encore apurée.');
+            }
+            // require payment date to exist (paid and recorded)
+            if (empty($fact->date_paiement)) {
+                return back()->with('error','Impossible de faire la sortie: la date de paiement n\'est pas enregistrée.');
+            }
         }
 
+        // only set sortie fields; do NOT modify date_entree
         $entree->date_sortie = Carbon::now()->utc();
         $entree->sortie_user_id = auth()->id();
-        // mark as sortie
         $entree->sortie = 1;
         $entree->save();
         if ($request->wantsJson() || $request->ajax()) {
