@@ -102,6 +102,43 @@ document.addEventListener('DOMContentLoaded', function(){
 
 <!-- Sortie modal -->
 <div class="modal fade" id="sortieModal" tabindex="-1" aria-hidden="true">
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // When the sortie form is submitted, blur the active element first to avoid aria-hidden focus warnings
+  try {
+    const modal = document.getElementById('sortieModal');
+    if (modal) {
+      // Blur any focused element inside the modal before the modal is hidden or form submitted
+      const form = modal.querySelector('form');
+      if (form) {
+        form.addEventListener('submit', function(e){
+          try { (document.activeElement || document.body).blur(); } catch(err){}
+          try { document.body.focus(); } catch(err){}
+        });
+      }
+
+      // When modal is fully hidden, return focus to the element that opened it.
+      // Use 'hidden.bs.modal' (fired after the modal is hidden) to avoid aria-hidden focus warnings.
+      try {
+        const opener = document.querySelector('[data-bs-target="#sortieModal"]') || document.querySelector('[data-bs-toggle="modal"][data-bs-target="#sortieModal"]');
+        modal.addEventListener('hidden.bs.modal', function(){
+          try { (document.activeElement || document.body).blur(); } catch(err){}
+          try {
+            if (opener && typeof opener.focus === 'function') {
+              opener.focus();
+            } else {
+              // fallback: focus the body
+              document.body.focus();
+            }
+          } catch(err) {}
+        });
+      } catch(e) { /* ignore */ }
+    }
+  } catch(e) { /* non-fatal */ }
+});
+</script>
+@endpush
   <div class="modal-dialog">
     <form method="POST" action="{{ route('caisse.sortie') }}">
       @csrf

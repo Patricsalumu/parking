@@ -69,12 +69,12 @@ class SortieController extends Controller
             ->whereDate('date_sortie', '<=', $end)
             ->count();
 
-        // stock: entries that were present during the selected range (entered on/before end and not exited before start)
-        $stockCount = Entree::whereDate('date_entree', '<=', $end)
-            ->where(function($q) use ($start) {
-                $q->whereNull('date_sortie')
-                  ->orWhereDate('date_sortie', '>=', $start);
-            })->count();
+                // stock: vehicles currently present in the park
+                // definition: entries that do not have a date_sortie (still inside) OR whose `sortie` flag indicates not exited
+                $stockCount = Entree::where(function($q) {
+                        $q->whereNull('date_sortie')
+                            ->orWhere('sortie', 0);
+                })->count();
 
         return view('sorties.index', compact('entrees','start','end','entriesCount','sortiesCount','stockCount'));
     }

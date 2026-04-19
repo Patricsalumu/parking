@@ -44,7 +44,7 @@
       <div class="card-body">
         <h6 class="card-title">Stock (présents)</h6>
         <h2 class="mb-0">{{ $stockCount ?? 0 }}</h2>
-        <small class="text-muted">Présents dans la période</small>
+        <small class="text-muted">Présents actuellement</small>
       </div>
     </div>
   </div>
