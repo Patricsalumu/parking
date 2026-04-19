@@ -32,6 +32,22 @@
     <input type="file" name="logo" class="form-control">
   </div>
 
+  <div class="mb-3"><label>Background (page de connexion)</label>
+    @if(isset($entreprise) && $entreprise->background)
+      <div class="mb-2"><img src="{{ asset('storage/' . $entreprise->background) }}" alt="background" style="max-width:240px;max-height:120px;object-fit:cover;border:1px solid #ddd;padding:4px;"></div>
+    @endif
+    <div class="mb-1 small text-muted">Recommandé: 1920×1080 (paysage), format JPG/PNG/WebP, taille maximale 4MB.</div>
+    <input type="file" name="background" class="form-control">
+  </div>
+
+  <div class="mb-3"><label>Favicon (icone onglet navigateur)</label>
+    @if(isset($entreprise) && $entreprise->favicon)
+      <div class="mb-2"><img src="{{ asset('storage/' . $entreprise->favicon) }}" alt="favicon" style="width:32px;height:32px;border:1px solid #ddd;padding:2px;"></div>
+    @endif
+    <div class="mb-1 small text-muted">Recommandé: 32×32 PNG ou ICO. Taille maximale 512KB.</div>
+    <input type="file" name="favicon" class="form-control">
+  </div>
+
   <div class="mb-3"><label>Adresse</label><textarea name="adresse" class="form-control">{{ $entreprise->adresse ?? '' }}</textarea></div>
   <div class="mb-3"><label>Fuseau horaire d'affichage</label>
     <select name="timezone" class="form-control">

@@ -2,7 +2,7 @@
 
 <style>
   body.login-bg { 
-    background-image: url("{{ asset('storage/logos/backgound1.jpeg') }}");
+    background-image: url("{{ (\App\Models\Entreprise::first()?->background) ? asset('storage/' . \App\Models\Entreprise::first()->background) : asset('storage/logos/backgound1.jpeg') }}");
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;

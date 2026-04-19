@@ -4,7 +4,11 @@
     <meta charset="utf-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Parking ERP</title>
+    @php $__ent = \App\Models\Entreprise::first(); @endphp
+    <title>{{ $__ent->nom ?? 'Parking ERP' }}</title>
+    @if(!empty($__ent->favicon))
+      <link rel="icon" type="image/png" href="{{ asset('storage/' . $__ent->favicon) }}">
+    @endif
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
