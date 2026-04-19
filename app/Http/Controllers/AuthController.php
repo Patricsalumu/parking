@@ -10,6 +10,10 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
+        // if user is already authenticated, redirect to dashboard to avoid CSRF/session confusion
+        if (auth()->check()) {
+            return redirect()->route('dashboard');
+        }
         return view('auth.login');
     }
 
