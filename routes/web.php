@@ -91,3 +91,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('journal_comptes', [\App\Http\Controllers\JournalCompteController::class,'store'])->name('journal_comptes.store');
     Route::resource('journal_comptes', \App\Http\Controllers\JournalCompteController::class)->only(['index','show']);
 });
+
+// Offline fallback used by service worker
+Route::get('/offline', function(){ return response()->view('offline'); })->name('offline');

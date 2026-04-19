@@ -10,6 +10,8 @@
       <link rel="icon" type="image/png" href="{{ asset('storage/' . $__ent->favicon) }}">
     @endif
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0d6efd">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
       /* Sidebar collapse behaviour */
@@ -125,6 +127,58 @@
     <!-- Toast container -->
     <div id="toastContainer" style="position:fixed;top:1rem;right:1rem;z-index:1080"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <style>
+      /* PWA install banner */
+      #pwaInstallBanner { position: fixed; left: 1rem; right:1rem; bottom: 1rem; z-index: 2000; display:none; }
+      #pwaInstallBanner .card { display:flex; align-items:center; gap:1rem; }
+      #pwaInstallBanner .actions { margin-left:auto; }
+    </style>
+    <div id="pwaInstallBanner" aria-hidden="true">
+      <div class="card shadow-sm p-2">
+        <div class="d-flex align-items-center">
+          <img src="/icons/icon-192.svg" alt="app" style="width:48px;height:48px;border-radius:8px;">
+          <div class="ms-2">
+            <strong>Installer l'application</strong>
+            <div class="small text-muted">Installez Parking en application sur votre appareil.</div>
+          </div>
+          <div class="actions">
+            <button id="pwaInstallBtn" class="btn btn-primary btn-sm">Installer</button>
+            <button id="pwaDismissBtn" class="btn btn-link btn-sm text-muted">Plus tard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/service-worker.js').catch(function(err){ console.warn('SW registration failed', err); });
+        });
+      }
+      let deferredPrompt = null;
+      const banner = document.getElementById('pwaInstallBanner');
+      const installBtn = document.getElementById('pwaInstallBtn');
+      const dismissBtn = document.getElementById('pwaDismissBtn');
+
+      window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        // show banner
+        if (banner) { banner.style.display = 'block'; banner.setAttribute('aria-hidden','false'); }
+      });
+
+      if (installBtn) installBtn.addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        if (banner) { banner.style.display='none'; banner.setAttribute('aria-hidden','true'); }
+      });
+
+      if (dismissBtn) dismissBtn.addEventListener('click', () => {
+        if (banner) { banner.style.display='none'; banner.setAttribute('aria-hidden','true'); }
+      });
+    </script>
     <script>
       document.addEventListener('DOMContentLoaded', function(){
         const toggle = document.getElementById('sidebarToggle');
