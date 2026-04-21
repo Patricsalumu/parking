@@ -6,7 +6,13 @@
   @csrf
   <input type="hidden" name="facturation_id" value="{{ $facturation->id }}">
   <div class="mb-3"><label>Montant</label><input name="montant" class="form-control"></div>
-  <div class="mb-3"><label>Date</label><input name="date_paiement" type="date" class="form-control"></div>
+  @if(!empty($canAntidate))
+    <div class="mb-3">
+      <label>Date et heure du paiement</label>
+      <input name="date_paiement" type="datetime-local" class="form-control" value="{{ old('date_paiement', now()->format('Y-m-d\\TH:i')) }}">
+      <div class="form-text">Avec l'accès antidate, cette valeur fixe aussi created_at et updated_at.</div>
+    </div>
+  @endif
   <div class="mb-3"><label>Mode</label><input name="mode" class="form-control"></div>
   <button class="btn btn-success">Save Payment</button>
 </form>

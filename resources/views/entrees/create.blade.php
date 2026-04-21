@@ -39,6 +39,21 @@
   <form method="POST" action="{{ route('entrees.store') }}">
   @csrf
 
+  @if(!empty($canAntidate))
+  <div class="mb-3">
+    <label>Date et heure d'entrée <span class="text-danger">*</span></label>
+    <input
+      type="datetime-local"
+      name="date_entree_saisie"
+      value="{{ old('date_entree_saisie', now()->format('Y-m-d\\TH:i')) }}"
+      class="form-control"
+      required
+    >
+    <div class="form-text">Cette date sera utilisée pour l'entrée et ses timestamps.</div>
+    @error('date_entree_saisie') <div class="text-danger small mt-1">{{ $message }}</div> @enderror
+  </div>
+  @endif
+
   <div class="mb-3">
     <label>Plaque <span class="text-danger">*</span></label>
     <div class="input-group">

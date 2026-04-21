@@ -25,7 +25,8 @@ class PaiementController extends Controller
     public function create($facturation_id)
     {
         $facturation = Facturation::findOrFail($facturation_id);
-        return view('paiements.create', compact('facturation'));
+        $canAntidate = in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->antidate);
+        return view('paiements.create', compact('facturation','canAntidate'));
     }
 
     public function store(Request $request)
@@ -45,16 +46,22 @@ class PaiementController extends Controller
             'note' => 'nullable|string',
         ]);
 
-        $datePaiement = isset($data['date_paiement']) && $data['date_paiement'] ? Carbon::parse($data['date_paiement'])->utc() : Carbon::now()->utc();
+        $canAntidate = in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->antidate);
 
-        $paiement = Paiement::create([
-            'facturation_id' => $data['facturation_id'],
-            'montant' => $data['montant'],
-            'date_paiement' => $datePaiement,
-            'mode' => $data['mode'] ?? null,
-            'note' => $data['note'] ?? null,
-            'user_id' => auth()->id(),
-        ]);
+        $datePaiement = ($canAntidate && !empty($data['date_paiement']))
+            ? Carbon::parse($data['date_paiement'])->utc()
+            : Carbon::now()->utc();
+
+        $paiement = new Paiement();
+        $paiement->facturation_id = $data['facturation_id'];
+        $paiement->montant = $data['montant'];
+        $paiement->date_paiement = $datePaiement;
+        $paiement->mode = $data['mode'] ?? null;
+        $paiement->note = $data['note'] ?? null;
+        $paiement->user_id = auth()->id();
+        $paiement->created_at = $datePaiement;
+        $paiement->updated_at = $datePaiement;
+        $paiement->save();
 
         // update facturation
         $fact = Facturation::find($data['facturation_id']);
