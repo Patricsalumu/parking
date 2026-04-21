@@ -191,6 +191,26 @@ class FacturationController extends Controller
         return response()->json($payload);
     }
 
+    // JSON: return the latest open entree (no date_sortie) to prefill the create form
+    public function latestOpenEntree(Request $request)
+    {
+        $entree = Entree::with('client','vehicule','user')
+            ->whereNull('date_sortie')
+            ->latest('date_entree')
+            ->first();
+        if (!$entree) return response()->json(['found' => false]);
+
+        $start = $entree->date_entree;
+        $end = $entree->date_sortie ?? Carbon::now();
+        $diffInMinutes = $end->diffInMinutes($start);
+        $days = intdiv($diffInMinutes, 60*24);
+        $hours = intdiv($diffInMinutes % (60*24), 60);
+        $minutes = $diffInMinutes % 60;
+
+        $payload = ['found' => true, 'entree' => $entree, 'duration' => ['days'=>$days,'hours'=>$hours,'minutes'=>$minutes], 'entree_closed' => false];
+        return response()->json($payload);
+    }
+
     public function show(Facturation $facturation)
     {
         return view('facturations.show', compact('facturation'));
@@ -220,64 +240,38 @@ class FacturationController extends Controller
         } elseif ($request->filled('categorie_id')) {
             $cat = Categorie::find($request->categorie_id);
         }
-        // compute days: if sortie missing use now
-        $start = $entree->date_entree;
-        $end = $entree->date_sortie ?? Carbon::now();
-        $hours = $end->diffInHours($start);
-        $unit = $cat->prix_par_24h ?? 0;
-
-        // apply billing rule:
-        // - first 24h => full unit
-        // - after first day, each full 24h => full unit
-        // - final partial day beyond full 24h blocks: if <=5h => 50% unit, else => full unit
-        if ($hours <= 24) {
-            $total = $unit;
-        } else {
-            $remaining = $hours - 24;
-            $fullAdditionalDays = intdiv($remaining, 24);
-            $remainder = $remaining % 24;
-            $total = $unit; // first day
-            $total += $fullAdditionalDays * $unit;
-            if ($remainder > 0) {
-                $total += ($remainder <= 5) ? ($unit * 0.5) : $unit;
-            }
-        }
-
-        // Special rule: category 1 (canter) pays only if they stayed overnight.
-        // If entry date equals today's date, charge 0.
-        if ($cat->id == 1) {
-            $entryDate = $entree->date_entree ? Carbon::parse($entree->date_entree)->toDateString() : null;
-            if ($entryDate && $entryDate === Carbon::now()->toDateString()) {
-                $total = 0;
-            }
-        }
-        $days = (int) ceil(max(1, $hours) / 24);
-        // apply reduction only if allowed (superadmin or acces->reduction)
+        // compute server-side authoritative facture using model helper
+        // determine allowed reduction from request (server-side permission check)
         $reduction = 0;
         if ($request->filled('reduction')) {
             if (in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->reduction)) {
                 $reduction = max(0, floatval($request->reduction));
             }
         }
-        $totalAfterReduction = max(0, $total - $reduction);
-        // determine paid amount (clamp to totalAfterReduction)
+
+        // build a Facturation instance (not yet persisted), attach relations so calculateFromEntree can use them
+        $fact = new Facturation();
+        $fact->entree_id = $entree->id;
+        $fact->user_id = auth()->id();
+        $fact->reduction = $reduction;
+        // attach models so calculateFromEntree can resolve category from either facture or entree
+        $fact->setRelation('entree', $entree);
+        if ($cat) $fact->setRelation('categorie', $cat);
+
+        // calculate amounts/duration server-side
+        $fact->calculateFromEntree();
+
+        // determine paid amount (clamp to montant_total)
         $paye = 0;
         if ($request->filled('montant_paye')) {
             $paye = max(0, floatval($request->input('montant_paye')));
-            if ($paye > $totalAfterReduction) $paye = $totalAfterReduction;
+            if ($paye > $fact->montant_total) $paye = $fact->montant_total;
         }
-        $datePaiement = $paye > 0 ? Carbon::now() : null;
+        $fact->montant_paye = $paye;
+        $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
 
-        $factData = [
-            'entree_id' => $entree->id,
-            'user_id' => auth()->id(),
-            'montant_total' => $totalAfterReduction,
-            'montant_paye' => $paye,
-            'duree' => $days,
-            'reduction' => $reduction,
-            'date_paiement' => $datePaiement,
-        ];
-        $fact = Facturation::create($factData);
+        // persist facture
+        $fact->save();
 
         // Create basic accounting journal entry: debit client (411000), credit product (parking 701000)
         try {

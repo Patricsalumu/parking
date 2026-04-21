@@ -45,6 +45,7 @@ class Facturation extends Model
         // prefer category linked to this facturation, otherwise fetch from entree
         $cat = $this->categorie ?? (isset($entree->categorie_id) ? Categorie::find($entree->categorie_id) : null);
         $price = $cat ? $cat->prix_par_24h : 0;
+        $catId = $cat ? $cat->id : null;
 
         // billing rules:
         // - first 24h = full price
@@ -60,13 +61,16 @@ class Facturation extends Model
             $total = $price; // first day
             $total += $fullAdditionalDays * $price;
             if ($remainder > 0) {
-                $total += ($remainder <= 5) ? ($price * 0.5) : $price;
+                if ($catId === 2) {
+                    $total += ($remainder <= 5) ? ($price * 0.5) : $price;
+                } else {
+                    $total += $price;
+                }
             }
         }
 
         // Special rule: category 1 (canter) pays only if they stayed overnight.
         // If entry date == current date, charge 0.
-        $catId = $cat ? $cat->id : null;
         if ($catId == 1) {
             if ($start->toDateString() === Carbon::now()->toDateString()) {
                 $total = 0;

@@ -14,7 +14,7 @@
   </div>
 </div>
 
-<div id="resultArea" style="display:none">
+<div id="resultArea" style="display:block">
   <h5>Entrée trouvée <button id="toggleInfoIcon" class="btn btn-sm btn-outline-secondary ms-2" title="Afficher/Masquer infos"><i class="bi bi-eye-slash"></i></button></h5>
   <div class="card p-3 mb-3">
     <p class="entree-field"><strong>Plaque:</strong> <span id="r_plaque"></span></p>
@@ -251,6 +251,41 @@ document.addEventListener('DOMContentLoaded', function(){
     document.getElementById('searchPlaque').value = initial;
     doPlaqueLookup(initial);
   }
+  else {
+    // try to prefill with latest open entree (if any)
+    try {
+      fetch("{{ route('facturations.latestOpenEntree') }}", { credentials: 'same-origin' })
+        .then(r => r.ok ? r.json() : Promise.reject())
+        .then(data => {
+          if (!data.found) return;
+          const e = data.entree;
+          const safe = id => document.getElementById(id);
+          if (safe('resultArea')) safe('resultArea').style.display = 'block';
+          if (safe('r_plaque')) safe('r_plaque').textContent = e.vehicule.plaque ?? '';
+          if (safe('r_compagnie')) safe('r_compagnie').textContent = e.vehicule.compagnie ?? '';
+          if (safe('r_client')) safe('r_client').textContent = e.client ? e.client.nom : '';
+          if (safe('r_date_entree')) safe('r_date_entree').textContent = e.date_entree;
+          if (safe('r_marque')) safe('r_marque').textContent = e.vehicule.marque ?? '';
+          if (safe('r_pays')) safe('r_pays').textContent = e.vehicule.pays ?? '';
+          if (safe('r_essieux')) safe('r_essieux').textContent = e.vehicule.essieux ?? '';
+          if (safe('r_observation')) safe('r_observation').textContent = e.observation ?? '';
+          if (safe('r_user')) safe('r_user').textContent = e.user ? e.user.name : '';
+          const dur = data.duration || {days:0,hours:0,minutes:0};
+          const durLabel = dur.days + 'j ' + dur.hours + 'h ' + dur.minutes + 'm';
+          if (safe('r_days')) safe('r_days').textContent = durLabel;
+          if (safe('entree_id')) safe('entree_id').value = e.id;
+          if (e.categorie_id && safe('categorie_id')) {
+            safe('categorie_id').value = e.categorie_id;
+            safe('categorie_id').disabled = true;
+            if (safe('categorie_id_input')) safe('categorie_id_input').value = e.categorie_id;
+          }
+          window._currentDuration = dur;
+          window._currentEntryDate = e.date_entree;
+          if (typeof showBillingAlerts === 'function') showBillingAlerts();
+          if (typeof computeTotal === 'function') computeTotal();
+        }).catch(()=>{});
+    } catch(e) { /* ignore */ }
+  }
 });
 
 // compute total when category changes or reduction changes
@@ -259,6 +294,7 @@ function computeTotal() {
   const days = Number(document.getElementById('input_days').value) || 1;
   if (!sel.value) { document.getElementById('input_total').value = ''; return; }
   const price = Number(sel.options[sel.selectedIndex].dataset.price) || 0;
+  const selectedCatId = Number(sel.value);
   // compute hours from detailed duration if present, else fallback to days*24
   let hours = days * 24;
   if (window._currentDuration) {
@@ -272,10 +308,15 @@ function computeTotal() {
     const fullAdditionalDays = Math.floor(remaining / 24);
     const remainder = remaining % 24;
     total = price + fullAdditionalDays * price;
-    if (remainder > 0) total += (remainder <= 5) ? (price * 0.5) : price;
+    if (remainder > 0) {
+      if (selectedCatId === 2) {
+        total += (remainder <= 5) ? (price * 0.5) : price;
+      } else {
+        total += price;
+      }
+    }
   }
   // special: category 1 pays only if stayed overnight (entry date != today)
-  const selectedCatId = Number(sel.value);
   if (selectedCatId === 1 && window._currentEntryDate) {
     const entryDate = (new Date(window._currentEntryDate)).toISOString().slice(0,10);
     const today = (new Date()).toISOString().slice(0,10);
@@ -310,14 +351,14 @@ function showBillingAlerts() {
   const entryDate = window._currentEntryDate ? (new Date(window._currentEntryDate)).toISOString().slice(0,10) : null;
   const today = (new Date()).toISOString().slice(0,10);
   if (catId === 1 && entryDate && entryDate === today) {
-    alertEl.innerHTML = '<div class="alert alert-warning small">Catégorie 1 : pas de nuitée détectée → facturation = 0 &ndash; pas de paiement requis.</div>';
+    alertEl.innerHTML = '<div class="alert alert-warning small">Transbordement canter : pas de nuitée détectée → facturation = 0 &ndash; pas de paiement requis.</div>';
     return;
   }
   if (hours > 24) {
     const remaining = hours - 24;
     const remainder = remaining % 24;
     if (catId === 2 && remainder > 0 && remainder <= 5) {
-      alertEl.innerHTML = '<div class="alert alert-info small">Catégorie 2 : dernier jour partiel ≤ 5h → dernier jour facturé à 50%.</div>';
+      alertEl.innerHTML = '<div class="alert alert-info small">Transborment Truck : dernier jour partiel ≤ 5h → dernier jour facturé à 50%.</div>';
       return;
     }
   }

@@ -49,6 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('facturations/export/csv', [FacturationController::class,'exportCsv'])->name('facturations.export.csv');
     Route::get('facturations/export/pdf', [FacturationController::class,'exportPdf'])->name('facturations.export.pdf');
     Route::get('facturations/create', [FacturationController::class,'create'])->name('facturations.create');
+    Route::get('facturations/latest-open-entree', [FacturationController::class,'latestOpenEntree'])->name('facturations.latestOpenEntree');
     Route::get('facturations/find-by-plaque', [FacturationController::class,'findByPlaque'])->name('facturations.findByPlaque');
     Route::get('facturations/{facturation}', [FacturationController::class,'show'])->name('facturations.show');
     Route::get('facturations/{facturation}/print', [FacturationController::class,'print'])->name('facturations.print');
