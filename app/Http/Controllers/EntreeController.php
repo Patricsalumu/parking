@@ -147,7 +147,8 @@ class EntreeController extends Controller
         $clients = Client::all();
         $vehicules = Vehicule::all();
         $categories = \App\Models\Categorie::all();
-        return view('entrees.create', compact('clients','vehicules','categories'));
+        $canAntidate = in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->antidate);
+        return view('entrees.create', compact('clients','vehicules','categories','canAntidate'));
     }
 
     public function store(Request $request)
@@ -171,7 +172,10 @@ class EntreeController extends Controller
             'essieux' => 'nullable|integer',
             'observation' => 'nullable|string',
             'categorie_id' => 'nullable|exists:categories,id',
+            'date_entree_saisie' => 'nullable|date',
         ]);
+
+        $canAntidate = in_array(auth()->user()->role, ['superadmin']) || (auth()->user()->acces && auth()->user()->acces->antidate);
 
         // create/select client inline
         if (empty($data['client_id']) && !empty($data['client_nom'])) {
@@ -210,15 +214,21 @@ class EntreeController extends Controller
             return back()->withInput()->withErrors(['plaque' => 'Une entrée active existe déjà pour cette plaque (pas de date de sortie)']);
         }
 
-        $entree = Entree::create([
-            'user_id' => Auth::id(),
-            'vehicule_id' => $data['vehicule_id'],
-            'client_id' => $data['client_id'] ?? null,
-            // store entry timestamp in UTC to keep DB canonical
-            'date_entree' => Carbon::now()->utc(),
-            'observation' => $data['observation'] ?? null,
-            'categorie_id' => $data['categorie_id'] ?? null,
-        ]);
+        // If user can antidate and supplied a datetime, use it as canonical timestamp.
+        $entryDateTime = ($canAntidate && !empty($data['date_entree_saisie']))
+            ? Carbon::parse($data['date_entree_saisie'])->utc()
+            : Carbon::now()->utc();
+
+        $entree = new Entree();
+        $entree->user_id = Auth::id();
+        $entree->vehicule_id = $data['vehicule_id'];
+        $entree->client_id = $data['client_id'] ?? null;
+        $entree->date_entree = $entryDateTime;
+        $entree->observation = $data['observation'] ?? null;
+        $entree->categorie_id = $data['categorie_id'] ?? null;
+        $entree->created_at = $entryDateTime;
+        $entree->updated_at = $entryDateTime;
+        $entree->save();
 
         return redirect()->route('entrees.print', $entree)->with('success','Entrée enregistrée');
     }
