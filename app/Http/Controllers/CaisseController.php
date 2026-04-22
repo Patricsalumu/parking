@@ -17,7 +17,6 @@ class CaisseController extends Controller
     public function index(Request $request)
     {
         $q = $request->query('q');
-        $compte_id = $request->query('compte_id');
         $start = $request->query('start_date');
         $end = $request->query('end_date');
 
@@ -30,6 +29,8 @@ class CaisseController extends Controller
             $q->where('numero','5');
         })->orderBy('numero')->get();
 
+        $compte_id = $this->resolveSelectedCompteId($request->query('compte_id'), $comptes);
+
         // comptes allowed to be debited on a sortie: classes 5 and 6 (charges & financiers)
         $comptes_debit = Compte::whereHas('classe', function($q){
             $q->whereIn('numero',['5','6']);
@@ -41,11 +42,6 @@ class CaisseController extends Controller
         })->orderBy('numero')->get();
 
         $query = JournalCompte::with(['compteDebit','compteCredit']);
-
-        // default to the connected user's caisse account when none selected
-        if (empty($compte_id)) {
-            $compte_id = auth()->user()->caisse_compte_id ?? null;
-        }
 
         if ($compte_id) {
             $query->where(function($sub) use ($compte_id){
@@ -103,14 +99,16 @@ class CaisseController extends Controller
     public function exportCsv(Request $request)
     {
         $q = $request->query('q');
-        $compte_id = $request->query('compte_id');
         $start = $request->query('start_date');
         $end = $request->query('end_date');
 
         // apply same defaults as index: default dates to today and default compte_id to user's caisse
         if (empty($start)) { $start = Carbon::today()->toDateString(); }
         if (empty($end)) { $end = Carbon::today()->toDateString(); }
-        if (empty($compte_id)) { $compte_id = auth()->user()->caisse_compte_id ?? null; }
+        $comptes = Compte::whereHas('classe', function($q){
+            $q->where('numero','5');
+        })->orderBy('numero')->get();
+        $compte_id = $this->resolveSelectedCompteId($request->query('compte_id'), $comptes);
 
         $query = JournalCompte::with(['compteDebit','compteCredit']);
         if ($compte_id) {
@@ -184,13 +182,15 @@ class CaisseController extends Controller
     public function exportPdf(Request $request)
     {
         $q = $request->query('q');
-        $compte_id = $request->query('compte_id');
         $start = $request->query('start_date');
         $end = $request->query('end_date');
 
         if (empty($start)) { $start = Carbon::today()->toDateString(); }
         if (empty($end)) { $end = Carbon::today()->toDateString(); }
-        if (empty($compte_id)) { $compte_id = auth()->user()->caisse_compte_id ?? null; }
+        $comptes = Compte::whereHas('classe', function($q){
+            $q->where('numero','5');
+        })->orderBy('numero')->get();
+        $compte_id = $this->resolveSelectedCompteId($request->query('compte_id'), $comptes);
 
         $query = JournalCompte::with(['compteDebit','compteCredit']);
         if ($compte_id) {
@@ -280,5 +280,19 @@ class CaisseController extends Controller
         }
 
         return redirect()->route('caisse.index')->with('success','Sortie enregistrée en caisse.');
+    }
+
+    protected function resolveSelectedCompteId($requestedCompteId, $comptes)
+    {
+        if (!empty($requestedCompteId) && $comptes->contains('id', (int) $requestedCompteId)) {
+            return (int) $requestedCompteId;
+        }
+
+        $userCompteId = auth()->user()->caisse_compte_id ?? null;
+        if (!empty($userCompteId) && $comptes->contains('id', (int) $userCompteId)) {
+            return (int) $userCompteId;
+        }
+
+        return $comptes->first()?->id;
     }
 }

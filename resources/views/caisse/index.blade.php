@@ -17,10 +17,12 @@
     <input type="date" name="end_date" class="form-control" value="{{ $end ?? '' }}" placeholder="Date fin">
   </div>
   <div class="col-md-3">
-    <select name="compte_id" class="form-control">
-      @foreach($comptes as $c)
+    <select name="compte_id" class="form-control" {{ $comptes->isEmpty() ? 'disabled' : '' }}>
+      @forelse($comptes as $c)
         <option value="{{ $c->id }}" {{ ((string)($compte_id ?? '') === (string)$c->id) ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>
-      @endforeach
+      @empty
+        <option value="">Aucun compte de caisse disponible</option>
+      @endforelse
     </select>
   </div>
   <div class="col-md-2">
@@ -30,6 +32,12 @@
     <button class="btn btn-primary w-100">Filtrer</button>
   </div>
 </form>
+
+@if($selectedCompte)
+  <div class="alert alert-light border mb-3">
+    Compte caisse chargé: <strong>{{ $selectedCompte->numero }} - {{ $selectedCompte->nom }}</strong>
+  </div>
+@endif
 
 <div class="mt-2 d-flex gap-2">
   @php $qs = http_build_query(request()->except('page')) @endphp
