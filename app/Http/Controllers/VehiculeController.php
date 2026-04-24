@@ -15,7 +15,37 @@ class VehiculeController extends Controller
 
     public function index()
     {
-        $vehicules = Vehicule::latest()->paginate(15);
+        // search by plaque or client name
+        $q = request()->input('q');
+
+        // compute aggregates in DB for performance
+        $vehQ = Vehicule::query()
+            ->select('vehicules.*')
+            ->selectSub(function($qsub){
+                $qsub->from('entrees')
+                  ->join('facturations','facturations.entree_id','=','entrees.id')
+                  ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+            }, 'total_billed')
+            ->selectSub(function($qsub){
+                $qsub->from('entrees')
+                  ->join('facturations','facturations.entree_id','=','entrees.id')
+                  ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+            }, 'total_paid')
+            ->withCount('entrees')
+            ->with('client');
+
+        if ($q) {
+            $vehQ->where(function($w) use ($q){
+                $w->where('plaque','like','%'.$q.'%')
+                  ->orWhereHas('client', function($qc) use ($q){ $qc->where('nom','like','%'.$q.'%'); });
+            });
+        }
+
+        $vehicules = $vehQ->latest()->paginate(15);
+        $vehicules->appends(request()->only('q'));
+
         return view('vehicules.index', compact('vehicules'));
     }
 
@@ -63,6 +93,85 @@ class VehiculeController extends Controller
     {
         $vehicule->delete();
         return redirect()->route('vehicules.index')->with('success','Vehicule deleted');
+    }
+
+    public function show(Vehicule $vehicule)
+    {
+        $vehicule->load(['client','entrees.facturation']);
+        $facturations = \App\Models\Facturation::whereHas('entree', function($q) use ($vehicule){
+            $q->where('vehicule_id', $vehicule->id);
+        })->with('entree.client')->latest()->get();
+        return view('vehicules.show', compact('vehicule','facturations'));
+    }
+
+    public function exportCsv()
+    {
+        $rows = Vehicule::query()
+            ->select('vehicules.*')
+            ->selectSub(function($q){
+                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                  ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+            }, 'total_billed')
+            ->selectSub(function($q){
+                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                  ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+            }, 'total_paid')
+            ->withCount('entrees')
+            ->with('client')
+            ->orderBy('vehicules.id')
+            ->get();
+
+        $filename = 'vehicules_'.now()->format('Ymd_His').'.csv';
+        $headers = ['Content-Type'=>'text/csv','Content-Disposition'=>"attachment; filename=\"{$filename}\""];
+        $callback = function() use ($rows) {
+            $out = fopen('php://output','w');
+            fputcsv($out, ['ID','Plaque','Client','#Entrées','Total facturé','Total payé','Reste']);
+            foreach($rows as $r){
+                $totalBilled = $r->total_billed ?? 0;
+                $totalPaid = $r->total_paid ?? 0;
+                $remaining = $totalBilled - $totalPaid;
+                fputcsv($out, [
+                    $r->id,
+                    $r->plaque,
+                    $r->client?->nom,
+                    $r->entrees_count ?? 0,
+                    number_format($totalBilled,2),
+                    number_format($totalPaid,2),
+                    number_format($remaining,2),
+                ]);
+            }
+            fclose($out);
+        };
+        return response()->stream($callback,200,$headers);
+    }
+
+    public function exportPdf()
+    {
+        $rows = Vehicule::query()
+            ->select('vehicules.*')
+            ->selectSub(function($q){
+                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                  ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+            }, 'total_billed')
+            ->selectSub(function($q){
+                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                  ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+            }, 'total_paid')
+            ->withCount('entrees')
+            ->with('client')
+            ->orderBy('vehicules.id')
+            ->get();
+
+        if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
+            $pdf = app()->make('dompdf.wrapper');
+            $pdf->loadView('vehicules.export_pdf', compact('rows'));
+            return $pdf->download('vehicules_'.now()->format('Ymd_His').'.pdf');
+        }
+        return view('vehicules.export_pdf', compact('rows'));
     }
 
     // JSON endpoint to find a vehicule by plaque (plate)

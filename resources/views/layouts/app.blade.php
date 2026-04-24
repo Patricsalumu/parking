@@ -14,6 +14,14 @@
         body.collapsed-sidebar main { width: 100% !important; }
       }
       .quick-card { min-height: 110px; }
+      /* Fix pagination arrows/icon sizing (prevent oversized SVG/icons) */
+      .pagination .page-link { padding: .25rem .5rem; }
+      .pagination .page-link svg { width: 1em; height: 1em; vertical-align: -0.125em; }
+      .pagination .page-link .bi { font-size: 0.95rem; vertical-align: -0.125em; }
+      /* Smaller variant used on clients/vehicules index */
+      .small-pagination .page-link { padding: .15rem .35rem; }
+      .small-pagination .page-link svg { width: .9em; height: .9em; }
+      .small-pagination .page-link .bi { font-size: 0.75rem; }
     </style>
   </head>
   <body>
@@ -47,8 +55,8 @@
             </div>
             <ul class="nav flex-column">
               <li class="nav-item"><a class="nav-link" href="{{ route('entrees.index') }}">Entrées</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('sorties.index') }}">Sorties</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('facturations.index') }}">Facturation</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ route('sorties.index') }}">Sorties</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('caisse.index') }}">Caisse</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('clients.index') }}">Clients</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ route('vehicules.index') }}">Véhicules</a></li>

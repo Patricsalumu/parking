@@ -53,7 +53,7 @@ class EntreeController extends Controller
             }
         }
 
-        $entrees = $query->orderBy('date_entree','desc')->paginate(20);
+        $entrees = $query->orderBy('date_entree','desc')->paginate(15);
         $entrees->appends(request()->all());
         $clients = Client::all();
         $users = \App\Models\User::all();

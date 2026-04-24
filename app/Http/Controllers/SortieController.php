@@ -34,7 +34,7 @@ class SortieController extends Controller
         if ($start) $query->whereDate('date_entree', '>=', $start);
         if ($end) $query->whereDate('date_entree', '<=', $end);
 
-        $entrees = $query->orderBy('date_entree','desc')->paginate(20);
+        $entrees = $query->orderBy('date_entree','desc')->paginate(15);
         $entrees->appends(request()->all());
 
         // Counts for state cards (respect selected date range)

@@ -9,6 +9,7 @@
     <input id="indexSearchPlaque" class="form-control form-control-sm me-2" placeholder="Rechercher plaque et créer facture">
     <button id="indexBtnSearch" class="btn btn-primary btn-sm me-3">Chercher & Créer</button>
     <form method="GET" class="d-flex">
+      <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm me-2" placeholder="Recherche (plaque / client / numéro)">
       <input type="date" name="start_date" value="{{ $start ?? request('start_date') }}" class="form-control form-control-sm me-2">
       <input type="date" name="end_date" value="{{ $end ?? request('end_date') }}" class="form-control form-control-sm me-2">
       <button class="btn btn-outline-secondary btn-sm me-2">Filtrer</button>
@@ -175,7 +176,18 @@ document.addEventListener('DOMContentLoaded', function(){
 </script>
 @endpush
 
-{{ $facturations->links() }}
+<div class="small-pagination">{{ $facturations->links() }}</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const container = document.querySelector('.small-pagination');
+  if (!container) return;
+  container.querySelectorAll('svg, .bi').forEach(el => el.remove());
+});
+</script>
+@endpush
+
 @endsection
 
 @push('scripts')

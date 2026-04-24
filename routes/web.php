@@ -31,11 +31,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () { return view('dashboard'); })->name('dashboard');
 
     Route::resource('clients', ClientController::class);
+    Route::get('clients/export/csv', [ClientController::class,'exportCsv'])->name('clients.export.csv');
+    Route::get('clients/export/pdf', [ClientController::class,'exportPdf'])->name('clients.export.pdf');
     // Explicit lookup route must come before the resource route so it is not
     // captured by the resource's `vehicules/{vehicule}` pattern.
     Route::get('vehicules/find-by-plaque', [VehiculeController::class,'findByPlaque'])->name('vehicules.findByPlaque');
     Route::get('vehicules/search-plaques', [VehiculeController::class,'searchPlaques'])->name('vehicules.searchPlaques');
     Route::resource('vehicules', VehiculeController::class);
+    Route::get('vehicules/export/csv', [VehiculeController::class,'exportCsv'])->name('vehicules.export.csv');
+    Route::get('vehicules/export/pdf', [VehiculeController::class,'exportPdf'])->name('vehicules.export.pdf');
     // Entrées resource and exports
     Route::get('entrees/export/csv', [EntreeController::class,'exportCsv'])->name('entrees.export.csv');
     Route::get('entrees/export/pdf', [EntreeController::class,'exportPdf'])->name('entrees.export.pdf');

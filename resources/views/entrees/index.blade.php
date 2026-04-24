@@ -93,5 +93,16 @@
     @endforeach
   </tbody>
 </table>
-{{ $entrees->appends(request()->all())->links() }}
+<div class="small-pagination">{{ $entrees->appends(request()->all())->links() }}</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const container = document.querySelector('.small-pagination');
+  if (!container) return;
+  container.querySelectorAll('svg, .bi').forEach(el => el.remove());
+});
+</script>
+@endpush
+
 @endsection

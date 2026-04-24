@@ -89,7 +89,17 @@
   </tbody>
 </table>
 
-{{ $entrees->links() }}
+<div class="small-pagination">{{ $entrees->links() }}</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const container = document.querySelector('.small-pagination');
+  if (!container) return;
+  container.querySelectorAll('svg, .bi').forEach(el => el.remove());
+});
+</script>
+@endpush
 
 <!-- Modal container for view/edit -->
 <div class="modal fade" id="sortieModal" tabindex="-1" aria-hidden="true">

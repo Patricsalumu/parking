@@ -3,23 +3,82 @@
 @section('content')
 <div class="d-flex justify-content-between mb-3">
   <h3>Clients</h3>
-  <a href="{{ route('clients.create') }}" class="btn btn-primary">Create</a>
+  <div class="d-flex align-items-center">
+    <form method="GET" class="d-flex me-2">
+      <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm" placeholder="Rechercher nom / email / téléphone">
+      <button class="btn btn-outline-secondary btn-sm ms-2">Rechercher</button>
+    </form>
+    <a href="{{ route('clients.export.csv') }}?{{ http_build_query(request()->only('q')) }}" class="btn btn-outline-success btn-sm me-2">Export CSV</a>
+    <a href="{{ route('clients.export.pdf') }}?{{ http_build_query(request()->only('q')) }}" class="btn btn-outline-primary btn-sm me-2">Export PDF</a>
+    <a href="{{ route('clients.create') }}" class="btn btn-primary">Nouveau Client</a>
+  </div>
 </div>
+
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Nom</th><th>Telephone</th><th>Actions</th></tr></thead>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Nom</th>
+      <th>Contact</th>
+      <th># Entrées</th>
+      <th>Total facturé</th>
+      <th>Total payé</th>
+      <th>Total réduction</th>
+      <th>Reste</th>
+      <th>Actions</th>
+    </tr>
+  </thead>
   <tbody>
     @foreach($clients as $c)
-      <tr>
-        <td>{{ $c->id }}</td>
-        <td>{{ $c->nom }}</td>
-        <td>{{ $c->telephone }}</td>
-        <td>
-          <a href="{{ route('clients.edit', $c) }}" class="btn btn-sm btn-warning">Edit</a>
-          <form action="{{ route('clients.destroy', $c) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Delete</button></form>
-        </td>
-      </tr>
+    @php
+      // use DB-side aggregates if available (selected as columns), otherwise fallback to relation calc
+      $totalBilled = $c->total_billed ?? null;
+      $totalPaid = $c->total_paid ?? null;
+      $totalReduction = $c->total_reduction ?? null;
+      if ($totalBilled === null) {
+        $entries = $c->entrees ?? collect();
+        $totalBilled = 0; $totalPaid = 0; $totalReduction = 0;
+        foreach($entries as $en) {
+          if ($en->facturation) {
+            $f = $en->facturation;
+            $totalBilled += $f->montant_total ?? 0;
+            $totalPaid += $f->montant_paye ?? 0;
+            $totalReduction += $f->reduction ?? 0;
+          }
+        }
+      }
+      $remaining = $totalBilled - $totalPaid;
+    @endphp
+    <tr>
+      <td>{{ $clients->firstItem() + $loop->index }}</td>
+      <td>{{ $c->nom }}</td>
+      <td>{{ $c->telephone }}<br>{{ $c->email }}</td>
+      <td>{{ $c->entrees_count ?? ($c->entrees ? $c->entrees->count() : 0) }}</td>
+      <td>{{ number_format($totalBilled,2) }}</td>
+      <td>{{ number_format($totalPaid ?? 0,2) }}</td>
+      <td>{{ number_format($totalReduction ?? 0,2) }}</td>
+      <td>{{ number_format($remaining,2) }}</td>
+      <td>
+        <a href="{{ route('clients.show', $c) }}" class="btn btn-sm btn-outline-secondary">Voir</a>
+        <a href="{{ route('clients.edit', $c) }}" class="btn btn-sm btn-warning">Modifier</a>
+        <form action="{{ route('clients.destroy', $c) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Supprimer</button></form>
+      </td>
+    </tr>
     @endforeach
   </tbody>
 </table>
-{{ $clients->links() }}
+
+<div class="small-pagination">{{ $clients->links() }}</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const container = document.querySelector('.small-pagination');
+  if (!container) return;
+  // remove any inline SVG icons and bootstrap-icon <i> elements inside pagination links
+  container.querySelectorAll('svg, .bi').forEach(el => el.remove());
+});
+</script>
+@endpush
+
 @endsection
