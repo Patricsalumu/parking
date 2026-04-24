@@ -61,7 +61,7 @@
                 $duration = $days . 'j ' . $hours . 'h ' . $minutes . 'm';
               }
             @endphp
-            <td>{{ $duration }}</td>
+            <td>@if($f->entree?->date_sortie)<span class="text-danger">{{ $duration }}</span>@else{{ $duration }}@endif</td>
             <td>{{ $f->user?->name ?? $f->entree->user?->name }}</td>
         <td>{{ number_format($f->montant_total,2) }}</td>
         <td>{{ number_format($f->montant_paye ?? 0,2) }}</td>

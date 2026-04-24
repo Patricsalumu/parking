@@ -12,6 +12,36 @@
   </form>
 </div>
 
+<div class="row g-3 mb-3">
+  <div class="col-sm-4">
+    <div class="card quick-card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title">Entrées</h6>
+        <h2 class="mb-0">{{ $entriesCount ?? 0 }}</h2>
+        <small class="text-muted">Entre {{ $start }} et {{ $end }}</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card quick-card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title">Sorties</h6>
+        <h2 class="mb-0">{{ $sortiesCount ?? 0 }}</h2>
+        <small class="text-muted">Entre {{ $start }} et {{ $end }}</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-sm-4">
+    <div class="card quick-card shadow-sm">
+      <div class="card-body">
+        <h6 class="card-title">Stock (présents)</h6>
+        <h2 class="mb-0">{{ $stockCount ?? 0 }}</h2>
+        <small class="text-muted">Présents dans la période</small>
+      </div>
+    </div>
+  </div>
+</div>
+
 <table class="table table-striped">
   <thead>
     <tr>
@@ -31,7 +61,7 @@
   </thead>
   <tbody>
     @foreach($entrees as $e)
-    <tr>
+    <tr class="{{ $e->date_sortie ? 'table-danger' : '' }}">
       <td>{{ $entrees->firstItem() + $loop->index }}</td>
       <td>{{ $e->vehicule?->plaque }}</td>
       <td>{{ $e->vehicule?->compagnie ?? '-' }}</td>
@@ -51,18 +81,6 @@
       </td>
       <td>
         <a href="{{ route('sorties.show', $e) }}" class="btn btn-sm btn-outline-secondary me-1">Voir</a>
-        @php
-          $fact = $e->facturation;
-          $canExit = false;
-          if ($fact) {
-            $canExit = (($fact->montant_paye ?? 0) >= ($fact->montant_total ?? 0));
-          }
-        @endphp
-        @if($e->date_sortie)
-          <button class="btn btn-sm btn-light" disabled>Déjà sorti</button>
-        @else
-          <button class="btn btn-sm {{ $canExit ? 'btn-danger btn-exit' : 'btn-secondary' }}" data-id="{{ $e->id }}" {{ $canExit ? '' : 'disabled' }}>Sortie</button>
-        @endif
       </td>
     </tr>
     @endforeach
@@ -104,9 +122,7 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     }
 
-    document.querySelectorAll('.btn-exit').forEach(btn => {
-      btn.addEventListener('click', function(){ loadAndShow(this.dataset.id); });
-    });
+    // Le bouton 'Sortie' a été supprimé ; ouverture/confirmation se fera depuis "Voir".
     // delegate submit for confirmSortieForm inside loaded modal content
     document.getElementById('sortieModalContent').addEventListener('submit', function(e){
       const form = e.target;

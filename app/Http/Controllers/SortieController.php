@@ -36,7 +36,25 @@ class SortieController extends Controller
 
         $entrees = $query->orderBy('date_entree','desc')->paginate(20);
         $entrees->appends(request()->all());
-        return view('sorties.index', compact('entrees','start','end'));
+
+        // Counts for state cards (respect selected date range)
+        $entriesCount = Entree::whereDate('date_entree', '>=', $start)
+            ->whereDate('date_entree', '<=', $end)
+            ->count();
+
+        $sortiesCount = Entree::whereNotNull('date_sortie')
+            ->whereDate('date_sortie', '>=', $start)
+            ->whereDate('date_sortie', '<=', $end)
+            ->count();
+
+        // stock: entries that were present during the selected range (entered on/before end and not exited before start)
+        $stockCount = Entree::whereDate('date_entree', '<=', $end)
+            ->where(function($q) use ($start) {
+                $q->whereNull('date_sortie')
+                  ->orWhereDate('date_sortie', '>=', $start);
+            })->count();
+
+        return view('sorties.index', compact('entrees','start','end','entriesCount','sortiesCount','stockCount'));
     }
 
     public function show(Request $request, Entree $entree)
@@ -83,6 +101,8 @@ class SortieController extends Controller
 
         $entree->date_sortie = Carbon::now();
         $entree->sortie_user_id = auth()->id();
+        // mark as exited
+        $entree->sortie = 1;
         $entree->save();
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([

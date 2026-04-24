@@ -35,10 +35,8 @@
   </div>
   
 <div class="modal-footer">
-  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-  @if($entree->date_sortie)
-    <button class="btn btn-light" disabled>Déjà sorti</button>
-  @else
+  <button type="button" class="btn btn-secondary" onclick="returnToSortiesIndex()">Fermer</button>
+  @if(!$entree->date_sortie)
     @if($canExit)
       <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#confirmSortieModal">Confirmer Sortie</button>
     @else
@@ -46,6 +44,17 @@
     @endif
   @endif
 </div>
+
+<script>
+function returnToSortiesIndex(){
+  // If loaded inside the index modal, hide it then go to index
+  const outer = document.getElementById('sortieModal');
+  if (outer) {
+    try { bootstrap.Modal.getInstance(outer)?.hide(); } catch(e){}
+  }
+  window.location.href = "{{ route('sorties.index') }}";
+}
+</script>
 
 <!-- Confirm Sortie Modal -->
 <div class="modal fade" id="confirmSortieModal" tabindex="-1" aria-hidden="true">

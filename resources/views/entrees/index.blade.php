@@ -80,7 +80,7 @@
             $duration = 'N/A';
           }
         @endphp
-        <td>{{ $duration }}</td>
+        <td>@if($e->date_sortie)<span class="text-danger">{{ $duration }}</span>@else{{ $duration }}@endif</td>
         <td>{{ $e->user?->name }}</td>
         <td>
           <a href="{{ route('entrees.edit', $e) }}" class="btn btn-sm btn-warning">Modifier</a>
