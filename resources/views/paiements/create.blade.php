@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<h3>Register Payment for Facturation #{{ $facturation->id }}</h3>
+<h3>Register Payment for Facturation #{{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</h3>
 <form method="POST" action="{{ route('paiements.store') }}">
   @csrf
   <input type="hidden" name="facturation_id" value="{{ $facturation->id }}">

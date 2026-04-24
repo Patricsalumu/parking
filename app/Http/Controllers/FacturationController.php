@@ -230,7 +230,13 @@ class FacturationController extends Controller
                 abort(403,'Unauthorized');
             }
         }
-        $request->validate(['entree_id' => 'required|exists:entrees,id','categorie_id' => 'required|exists:categories,id','reduction' => 'nullable|numeric|min:0','montant_paye' => 'nullable|numeric|min:0']);
+        $request->validate([
+            'entree_id' => 'required|exists:entrees,id',
+            'categorie_id' => 'required|exists:categories,id',
+            'reduction' => 'nullable|numeric|min:0',
+            'montant_paye' => 'nullable|numeric|min:0',
+            'numero' => 'nullable|integer|unique:facturations,numero',
+        ]);
         $entree = Entree::findOrFail($request->entree_id);
         // If a facture exists for this entree and the vehicle is still inside, allow updating it.
         $existingFact = \App\Models\Facturation::where('entree_id', $entree->id)->latest()->first();

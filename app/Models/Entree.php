@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class Entree extends Model
 {
@@ -16,6 +17,7 @@ class Entree extends Model
         'date_entree' => 'datetime',
         'date_sortie' => 'datetime',
         'sortie' => 'boolean',
+        'numero' => 'integer',
     ];
 
     // Ensure we always return Carbon instances even if DB contains strings
@@ -69,5 +71,22 @@ class Entree extends Model
         $hours = $end->diffInHours($start);
         $days = (int) ceil($hours / 24);
         return max(1, $days);
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->numero)) {
+                // get current max and increment
+                $max = (int) DB::table($model->getTable())->max('numero');
+                $model->numero = $max + 1;
+            }
+        });
+    }
+
+    public function getNumeroFormattedAttribute()
+    {
+        if (empty($this->numero)) return null;
+        return str_pad((string) $this->numero, 6, '0', STR_PAD_LEFT);
     }
 }

@@ -1,9 +1,10 @@
 @extends('layouts.app')
 
 @section('content')
-<h3>Facturation #{{ $facturation->id }}</h3>
+<h3>Facturation #{{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</h3>
 <div class="card p-3">
   <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>
+  <p><strong>Numero Facture:</strong> {{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</p>
   <p><strong>Véhicule - Plaque:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
   <p><strong>Marque:</strong> {{ $facturation->entree->vehicule?->marque }}</p>
   <p><strong>Pays:</strong> {{ $facturation->entree->vehicule?->pays }}</p>

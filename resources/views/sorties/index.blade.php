@@ -46,6 +46,7 @@
   <thead>
     <tr>
       <th>#</th>
+      <th>Numero</th>
       <th>Plaque</th>
       <th>Compagnie</th>
       <th class="d-none d-md-table-cell">Marque</th>
@@ -63,6 +64,7 @@
     @foreach($entrees as $e)
     <tr class="{{ $e->date_sortie ? 'table-danger' : '' }}">
       <td>{{ $entrees->firstItem() + $loop->index }}</td>
+      <td>{{ $e->numero_formatted ?? $e->numero }}</td>
       <td>{{ $e->vehicule?->plaque }}</td>
       <td>{{ $e->vehicule?->compagnie ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->marque ?? '-' }}</td>
@@ -74,7 +76,7 @@
       <td>{{ $e->user?->name }}</td>
       <td>
         @if($e->facturation)
-          #{{ $e->facturation->id }} - {{ $e->categorie?->nom ?? ($e->facturation->categorie?->nom ?? 'N/C') }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
+          #{{ $e->facturation->numero_formatted ?? $e->facturation->numero ?? $e->facturation->id }} - {{ $e->categorie?->nom ?? ($e->facturation->categorie?->nom ?? 'N/C') }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
         @else
           <span class="text-muted">Aucune</span>
         @endif

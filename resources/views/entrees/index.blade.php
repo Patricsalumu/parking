@@ -49,6 +49,7 @@
   <thead>
     <tr>
       <th>#</th>
+      <th>Numero</th>
       <th>Vehicule</th>
       <th>Catégorie</th>
       <th>Client</th>
@@ -63,6 +64,7 @@
     @foreach($entrees as $e)
       <tr class="{{ $e->date_sortie ? 'table-danger' : '' }}">
         <td>{{ $entrees->firstItem() + $loop->index }}</td>
+        <td>{{ $e->numero_formatted ?? $e->numero }}</td>
         <td>{{ $e->vehicule?->plaque }}</td>
         <td>{{ $e->categorie?->nom }}</td>
         <td>{{ $e->client?->nom }}</td>

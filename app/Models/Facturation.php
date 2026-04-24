@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use App\Models\Categorie;
 
 class Facturation extends Model
@@ -14,6 +15,10 @@ class Facturation extends Model
     protected $fillable = ['entree_id','user_id','montant_total','montant_paye','duree','reduction','date_paiement'];
 
     protected $dates = ['date_paiement'];
+    protected $casts = [
+        'date_paiement' => 'datetime',
+        'numero' => 'integer',
+    ];
 
     public function entree()
     {
@@ -81,5 +86,21 @@ class Facturation extends Model
         $this->duree = (int) ceil(max(1, $hours) / 24);
         $this->montant_total = max(0, $total - ($this->reduction ?? 0));
         return $this;
+    }
+
+    protected static function booted()
+    {
+        static::creating(function ($model) {
+            if (empty($model->numero)) {
+                $max = (int) DB::table($model->getTable())->max('numero');
+                $model->numero = $max + 1;
+            }
+        });
+    }
+
+    public function getNumeroFormattedAttribute()
+    {
+        if (empty($this->numero)) return null;
+        return str_pad((string) $this->numero, 6, '0', STR_PAD_LEFT);
     }
 }

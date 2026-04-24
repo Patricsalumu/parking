@@ -155,6 +155,7 @@ class EntreeController extends Controller
             }
         }
         $data = $request->validate([
+            'numero' => 'nullable|integer|unique:entrees,numero',
             'client_id' => 'nullable|exists:clients,id',
             'client_nom' => 'nullable|string',
             'vehicule_id' => 'nullable|exists:vehicules,id',
@@ -234,6 +235,7 @@ class EntreeController extends Controller
             }
         }
         $data = $request->validate([
+            'numero' => 'nullable|integer|unique:entrees,numero,'.$entree->id,
             'client_id' => 'nullable|exists:clients,id',
             'client_nom' => 'nullable|string',
             'vehicule_id' => 'nullable|exists:vehicules,id',

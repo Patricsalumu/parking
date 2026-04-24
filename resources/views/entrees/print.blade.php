@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Bon d'entrée #{{ $entree->id }}</title>
+  <title>Bon d'entrée #{{ $entree->numero_formatted ?? $entree->numero ?? $entree->id }}</title>
   <style>
     body{ font-family: Arial, Helvetica, sans-serif; width:80mm; margin:0; padding:8px; }
     .company{ text-align:center; font-weight:700; }
@@ -36,7 +36,7 @@
 
   <div class="tbl" style="text-align:center; margin-top:6px">
     <table style="margin:0 auto;">
-      <tr><td class="small">Bon d'entrée N°</td><td class="small">: {{ $entree->id }}</td></tr>
+      <tr><td class="small">Bon d'entrée N°</td><td class="small">: {{ $entree->numero_formatted ?? $entree->numero ?? $entree->id }}</td></tr>
       <tr><td class="small">Date d'entrée</td><td class="small">: {{ $entree->date_entree ? \Carbon\Carbon::parse($entree->date_entree)->format('Y-m-d H:i') : '' }}</td></tr>
       <tr><td class="small">Compagnie</td><td class="small">: {{ $entree->vehicule?->compagnie }}</td></tr>
       <tr><td class="small">Plaque</td><td class="small">: {{ $entree->vehicule?->plaque }}</td></tr>

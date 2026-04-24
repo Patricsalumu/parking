@@ -32,6 +32,7 @@
   <thead>
     <tr>
     <th>#</th>
+      <th>Numero</th>
       <th>Entrée</th>
       <th>Vehicule</th>
       <th>Catégorie</th>
@@ -47,6 +48,7 @@
     @foreach($facturations as $f)
       <tr>
         <td>{{ $facturations->firstItem() + $loop->index }}</td>
+        <td>{{ $f->numero_formatted ?? $f->numero }}</td>
         <td>{{ $f->entree_id }}</td>
         <td>{{ $f->entree->vehicule?->plaque }}</td>
         <td>{{ $f->entree?->categorie?->nom ?? ($f->categorie?->nom ?? 'N/C') }}</td>

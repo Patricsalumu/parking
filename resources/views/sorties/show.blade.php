@@ -2,6 +2,7 @@
   <div class="row">
     <div class="col-md-6">
       <div class="mb-2"><strong>Client:</strong> {{ $entree->client?->nom ?? 'N/C' }}</div>
+      <div class="mb-2"><strong>Numero:</strong> {{ $entree->numero_formatted ?? $entree->numero ?? $entree->id }}</div>
       <div class="mb-2"><strong>Date entrée:</strong> {{ $entree->date_entree ? \Carbon\Carbon::parse($entree->date_entree)->format('Y-m-d H:i') : '' }}</div>
       <div class="mb-2"><strong>Utilisateur entrée:</strong> {{ $entree->user?->name }}</div>
       <div class="mb-2"><strong>Date sortie:</strong> {{ $entree->date_sortie ? \Carbon\Carbon::parse($entree->date_sortie)->format('Y-m-d H:i') : '-' }}</div>
