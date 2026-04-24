@@ -185,8 +185,10 @@ class FacturationController extends Controller
                 'date_paiement' => $fact->date_paiement ?? null,
             ];
         }
-        // indicate if the entree is closed (date_sortie set)
-        $payload['entree_closed'] = $entree->date_sortie ? true : false;
+        // indicate if the entree is closed: prefer explicit `sortie` boolean, fallback to raw date_sortie sentinel
+        $rawDateSortie = $entree->getOriginal('date_sortie');
+        $entreeClosed = ($entree->sortie ?? false) || ($rawDateSortie && $rawDateSortie !== '0000-00-00 00:00:00');
+        $payload['entree_closed'] = $entreeClosed ? true : false;
 
         return response()->json($payload);
     }
@@ -207,7 +209,10 @@ class FacturationController extends Controller
         $hours = intdiv($diffInMinutes % (60*24), 60);
         $minutes = $diffInMinutes % 60;
 
-        $payload = ['found' => true, 'entree' => $entree, 'duration' => ['days'=>$days,'hours'=>$hours,'minutes'=>$minutes], 'entree_closed' => false];
+        // indicate if the entree is closed: prefer explicit `sortie` boolean, fallback to raw date_sortie sentinel
+        $rawDateSortie = $entree->getOriginal('date_sortie');
+        $entreeClosed = ($entree->sortie ?? false) || ($rawDateSortie && $rawDateSortie !== '0000-00-00 00:00:00');
+        $payload = ['found' => true, 'entree' => $entree, 'duration' => ['days'=>$days,'hours'=>$hours,'minutes'=>$minutes], 'entree_closed' => $entreeClosed ? true : false];
         return response()->json($payload);
     }
 
@@ -227,8 +232,13 @@ class FacturationController extends Controller
         }
         $request->validate(['entree_id' => 'required|exists:entrees,id','categorie_id' => 'required|exists:categories,id','reduction' => 'nullable|numeric|min:0','montant_paye' => 'nullable|numeric|min:0']);
         $entree = Entree::findOrFail($request->entree_id);
-        // Prevent creating a second facture for same entree
-        if (\App\Models\Facturation::where('entree_id', $entree->id)->exists()) {
+        // If a facture exists for this entree and the vehicle is still inside, allow updating it.
+        $existingFact = \App\Models\Facturation::where('entree_id', $entree->id)->latest()->first();
+        // treat DB sentinel '0000-00-00 00:00:00' as no sortie; prefer explicit `sortie` boolean when present
+        $rawDateSortie = $entree->getOriginal('date_sortie');
+        $entreeClosed = ($entree->sortie ?? false) || ($rawDateSortie && $rawDateSortie !== '0000-00-00 00:00:00');
+        if ($existingFact && $entreeClosed) {
+            // already exited: do not allow creating/updating
             return back()->with('error','Une facture existe déjà pour cette entrée.');
         }
         // Note: do NOT set entree->date_sortie here. Sortie must be performed from the Sorties page.
@@ -249,29 +259,48 @@ class FacturationController extends Controller
             }
         }
 
-        // build a Facturation instance (not yet persisted), attach relations so calculateFromEntree can use them
-        $fact = new Facturation();
-        $fact->entree_id = $entree->id;
-        $fact->user_id = auth()->id();
-        $fact->reduction = $reduction;
-        // attach models so calculateFromEntree can resolve category from either facture or entree
-        $fact->setRelation('entree', $entree);
-        if ($cat) $fact->setRelation('categorie', $cat);
+        if ($existingFact) {
+            // update existing facture (vehicle still inside)
+            $fact = $existingFact;
+            $fact->user_id = auth()->id();
+            $fact->reduction = $reduction;
+            $fact->setRelation('entree', $entree);
+            if ($cat) $fact->setRelation('categorie', $cat);
+            $fact->calculateFromEntree();
+            // determine paid amount (clamp to montant_total)
+            $paye = 0;
+            if ($request->filled('montant_paye')) {
+                $paye = max(0, floatval($request->input('montant_paye')));
+                if ($paye > $fact->montant_total) $paye = $fact->montant_total;
+            }
+            $fact->montant_paye = $paye;
+            $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
+            $fact->save();
+        } else {
+            // build a Facturation instance (not yet persisted), attach relations so calculateFromEntree can use them
+            $fact = new Facturation();
+            $fact->entree_id = $entree->id;
+            $fact->user_id = auth()->id();
+            $fact->reduction = $reduction;
+            // attach models so calculateFromEntree can resolve category from either facture or entree
+            $fact->setRelation('entree', $entree);
+            if ($cat) $fact->setRelation('categorie', $cat);
 
-        // calculate amounts/duration server-side
-        $fact->calculateFromEntree();
+            // calculate amounts/duration server-side
+            $fact->calculateFromEntree();
 
-        // determine paid amount (clamp to montant_total)
-        $paye = 0;
-        if ($request->filled('montant_paye')) {
-            $paye = max(0, floatval($request->input('montant_paye')));
-            if ($paye > $fact->montant_total) $paye = $fact->montant_total;
+            // determine paid amount (clamp to montant_total)
+            $paye = 0;
+            if ($request->filled('montant_paye')) {
+                $paye = max(0, floatval($request->input('montant_paye')));
+                if ($paye > $fact->montant_total) $paye = $fact->montant_total;
+            }
+            $fact->montant_paye = $paye;
+            $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
+
+            // persist facture
+            $fact->save();
         }
-        $fact->montant_paye = $paye;
-        $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
-
-        // persist facture
-        $fact->save();
 
         // Create basic accounting journal entry: debit client (411000), credit product (parking 701000)
         try {

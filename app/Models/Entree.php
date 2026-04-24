@@ -10,11 +10,12 @@ class Entree extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','sortie_user_id','observation','categorie_id'];
+    protected $fillable = ['user_id','vehicule_id','client_id','date_entree','date_sortie','sortie_user_id','observation','categorie_id','sortie'];
     protected $dates = ['date_entree','date_sortie'];
     protected $casts = [
         'date_entree' => 'datetime',
         'date_sortie' => 'datetime',
+        'sortie' => 'boolean',
     ];
 
     // Ensure we always return Carbon instances even if DB contains strings

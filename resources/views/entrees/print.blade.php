@@ -16,6 +16,9 @@
   </style>
 </head>
 <body>
+  <div style="margin-bottom:8px;">
+    <a href="{{ route('entrees.create') }}" style="display:inline-block;padding:6px 10px;border:1px solid #000;border-radius:4px;text-decoration:none;color:#000;font-size:0.9em;">← Retour</a>
+  </div>
   <div class="company">{{ $entreprise->nom ?? config('app.name') }}</div>
   <div class="slogan">{{ $entreprise->slogan ?? '' }}</div>
   <div style="border-bottom:1px solid #000; margin:6px 0"></div>

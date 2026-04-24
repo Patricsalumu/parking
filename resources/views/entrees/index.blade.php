@@ -50,6 +50,7 @@
     <tr>
       <th>#</th>
       <th>Vehicule</th>
+      <th>Catégorie</th>
       <th>Client</th>
       <th>Date Entrée</th>
       <th>Date Sortie</th>
@@ -60,12 +61,13 @@
   </thead>
   <tbody>
     @foreach($entrees as $e)
-      <tr>
+      <tr class="{{ $e->date_sortie ? 'table-danger' : '' }}">
         <td>{{ $entrees->firstItem() + $loop->index }}</td>
         <td>{{ $e->vehicule?->plaque }}</td>
+        <td>{{ $e->categorie?->nom }}</td>
         <td>{{ $e->client?->nom }}</td>
-        <td>{{ $e->date_entree }}</td>
-        <td>{{ $e->date_sortie }}</td>
+        <td>{{ $e->date_entree ? $e->date_entree->format('Y-m-d H:i') : '' }}</td>
+        <td>{{ $e->date_sortie ? $e->date_sortie->format('Y-m-d H:i') : '' }}</td>
         @php
           if ($e->date_entree) {
             $start = \Carbon\Carbon::parse($e->date_entree);

@@ -213,7 +213,7 @@ class EntreeController extends Controller
             'categorie_id' => $data['categorie_id'] ?? null,
         ]);
 
-        return redirect()->route('entrees.index')->with('success','Entrée enregistrée');
+        return redirect()->route('entrees.print', $entree)->with('success','Entrée enregistrée');
     }
 
     public function edit(Entree $entree)

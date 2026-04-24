@@ -82,6 +82,21 @@
 </div>
 
 <script>
+// format ISO datetime string to `YYYY-MM-DD HH:mm`
+function formatDateTime(iso) {
+  try {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    const pad = v => String(v).padStart(2,'0');
+    const Y = d.getFullYear();
+    const M = pad(d.getMonth()+1);
+    const D = pad(d.getDate());
+    const h = pad(d.getHours());
+    const m = pad(d.getMinutes());
+    return `${Y}-${M}-${D} ${h}:${m}`;
+  } catch(e) { return iso; }
+}
 function doPlaqueLookup(plaque) {
   if (!plaque) return;
   fetch("{{ route('facturations.findByPlaque') }}?plaque=" + encodeURIComponent(plaque))
@@ -98,7 +113,7 @@ function doPlaqueLookup(plaque) {
       document.getElementById('r_plaque').textContent = e.vehicule.plaque ?? '';
       document.getElementById('r_compagnie').textContent = e.vehicule.compagnie ?? '';
       document.getElementById('r_client').textContent = e.client ? e.client.nom : '';
-      document.getElementById('r_date_entree').textContent = e.date_entree;
+      document.getElementById('r_date_entree').textContent = formatDateTime(e.date_entree);
       document.getElementById('r_marque').textContent = e.vehicule.marque ?? '';
       document.getElementById('r_pays').textContent = e.vehicule.pays ?? '';
       document.getElementById('r_essieux').textContent = e.vehicule.essieux ?? '';
@@ -130,6 +145,10 @@ function doPlaqueLookup(plaque) {
         document.getElementById('input_paye').value = 0;
         document.getElementById('input_paye').disabled = false;
         document.getElementById('input_reduction').disabled = false;
+        // set submit state depending on explicit `sortie` boolean (fallback to payload flag)
+        const submitBtn = document.querySelector('#factForm button[type=submit]');
+        const entreeSortieFlag = (typeof e.sortie !== 'undefined') ? !!e.sortie : !!data.entree_closed;
+        if (submitBtn) submitBtn.disabled = entreeSortieFlag;
         // store current duration and entry date for client-side rule display
         window._currentDuration = dur;
         window._currentEntryDate = e.date_entree;
@@ -143,13 +162,11 @@ function doPlaqueLookup(plaque) {
         document.getElementById('input_reduction').disabled = true;
         // montant_paye should remain editable unless the entree is closed or facture has a payment date
         document.getElementById('input_paye').value = f.montant_paye ?? 0;
-        const entreeClosed = !!data.entree_closed;
-        const factPaidDate = !!f.date_paiement;
-        if (entreeClosed || factPaidDate) {
-          document.getElementById('input_paye').disabled = true;
-        } else {
-          document.getElementById('input_paye').disabled = false;
-        }
+        // prefer explicit boolean `entree.sortie` when present, else fallback to payload flag
+        // decide closed state from explicit `entree.sortie` if present
+        const entreeClosed = (data.entree && typeof data.entree.sortie !== 'undefined') ? !!data.entree.sortie : !!data.entree_closed;
+        // According to requirement: button should be locked only when `sortie` is 1; allow editing otherwise
+        document.getElementById('input_paye').disabled = entreeClosed;
           // show who created the facture
           document.getElementById('r_fact_user').textContent = f.user_name || '';
           // compute total from category price and days, but if fact had montant_total, prefer that for display
@@ -162,8 +179,9 @@ function doPlaqueLookup(plaque) {
           window._currentEntryDate = e.date_entree;
           if (typeof showBillingAlerts === 'function') showBillingAlerts();
           if (typeof computeTotal === 'function') computeTotal();
-          // disable submit as facture already exists (creation of duplicate not allowed)
-          document.querySelector('#factForm button[type=submit]').disabled = true;
+            // lock submit only when entree is closed (sortie==1)
+            const submitBtn = document.querySelector('#factForm button[type=submit]');
+            if (submitBtn) submitBtn.disabled = entreeClosed;
         } else {
           document.getElementById('r_fact_user').textContent = '';
         }
@@ -264,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function(){
           if (safe('r_plaque')) safe('r_plaque').textContent = e.vehicule.plaque ?? '';
           if (safe('r_compagnie')) safe('r_compagnie').textContent = e.vehicule.compagnie ?? '';
           if (safe('r_client')) safe('r_client').textContent = e.client ? e.client.nom : '';
-          if (safe('r_date_entree')) safe('r_date_entree').textContent = e.date_entree;
+          if (safe('r_date_entree')) safe('r_date_entree').textContent = formatDateTime(e.date_entree);
           if (safe('r_marque')) safe('r_marque').textContent = e.vehicule.marque ?? '';
           if (safe('r_pays')) safe('r_pays').textContent = e.vehicule.pays ?? '';
           if (safe('r_essieux')) safe('r_essieux').textContent = e.vehicule.essieux ?? '';

@@ -15,7 +15,7 @@
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>ID</th>
+      <th>#</th>
       <th>Plaque</th>
       <th>Compagnie</th>
       <th class="d-none d-md-table-cell">Marque</th>
@@ -32,7 +32,7 @@
   <tbody>
     @foreach($entrees as $e)
     <tr>
-      <td>{{ $e->id }}</td>
+      <td>{{ $entrees->firstItem() + $loop->index }}</td>
       <td>{{ $e->vehicule?->plaque }}</td>
       <td>{{ $e->vehicule?->compagnie ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->marque ?? '-' }}</td>

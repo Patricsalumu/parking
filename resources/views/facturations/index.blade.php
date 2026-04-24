@@ -31,7 +31,7 @@
 <table class="table table-striped">
   <thead>
     <tr>
-      <th>ID</th>
+    <th>#</th>
       <th>Entrée</th>
       <th>Vehicule</th>
       <th>Catégorie</th>
@@ -46,7 +46,7 @@
   <tbody>
     @foreach($facturations as $f)
       <tr>
-        <td>{{ $f->id }}</td>
+        <td>{{ $facturations->firstItem() + $loop->index }}</td>
         <td>{{ $f->entree_id }}</td>
         <td>{{ $f->entree->vehicule?->plaque }}</td>
         <td>{{ $f->entree?->categorie?->nom ?? ($f->categorie?->nom ?? 'N/C') }}</td>
