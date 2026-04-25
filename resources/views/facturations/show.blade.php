@@ -73,7 +73,7 @@
 </div>
 <div class="mt-2 d-flex gap-2">
   <button id="btnPayShow" class="btn btn-success">Payer</button>
-  <a href="{{ route('facturations.print', $facturation) }}" target="_blank" class="btn btn-primary">Imprimer</a>
+  <a href="{{ route('facturations.print', $facturation) }}" class="btn btn-primary">Imprimer</a>
 </div>
 
 <!-- Payment Modal (show) -->

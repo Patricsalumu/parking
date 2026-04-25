@@ -38,16 +38,19 @@ class FacturationController extends Controller
             if ($end) $query->whereDate('created_at', '<=', $end);
         }
 
-        $facturations = $query->latest()->paginate(15);
+        $facturations = $query->orderBy('numero','asc')->paginate(15);
         $facturations->appends(request()->all());
 
         // compute totals for current filters (not just page)
         $all = (clone $query)->get();
         $totalPaid = $all->sum('montant_paye');
-        $totalRemaining = $all->sum(function($f){ return ($f->montant_total - ($f->montant_paye ?? 0)); });
         $totalBilled = $all->sum('montant_total');
+        $totalRemaining = $all->filter(function($f){ return ($f->montant_total - ($f->montant_paye ?? 0)) > 0; })
+                             ->sum(function($f){ return $f->montant_total - ($f->montant_paye ?? 0); });
+        $totalAcompte = $all->filter(function($f){ return ($f->montant_total - ($f->montant_paye ?? 0)) < 0; })
+                            ->sum(function($f){ return abs($f->montant_total - ($f->montant_paye ?? 0)); });
 
-        return view('facturations.index', compact('facturations','totalPaid','totalRemaining','totalBilled','start','end'));
+        return view('facturations.index', compact('facturations','totalPaid','totalRemaining','totalBilled','totalAcompte','start','end'));
     }
 
     public function exportCsv()

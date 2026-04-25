@@ -32,10 +32,15 @@
   </div>
 </div>
 <div class="mb-3">
-  <div class="d-flex gap-3">
+  <div class="d-flex gap-3 flex-wrap">
     <div>Total facturé: <span class="badge bg-secondary">{{ number_format($totalBilled ?? 0,2) }}</span></div>
     <div>Total payé: <span class="badge bg-success">{{ number_format($totalPaid ?? 0,2) }}</span></div>
-    <div>Non payés: <span class="badge bg-warning text-dark">{{ number_format($totalRemaining ?? 0,2) }}</span></div>
+    @if(($totalRemaining ?? 0) > 0)
+    <div>Non payés: <span class="badge bg-warning text-dark">{{ number_format($totalRemaining,2) }}</span></div>
+    @endif
+    @if(($totalAcompte ?? 0) > 0)
+    <div>Acompte: <span class="badge bg-success">{{ number_format($totalAcompte,2) }}</span></div>
+    @endif
   </div>
 </div>
 <table class="table table-striped">
@@ -78,11 +83,18 @@
             <td>{{ $f->user?->name ?? $f->entree->user?->name }}</td>
         <td>{{ number_format($f->montant_total,2) }}</td>
         <td>{{ number_format($f->montant_paye ?? 0,2) }}</td>
-        <td>{{ number_format(($f->montant_total - ($f->montant_paye ?? 0)),2) }}</td>
+        @php $reste = $f->montant_total - ($f->montant_paye ?? 0); @endphp
+        <td>
+          @if($reste < 0)
+            <span class="badge bg-success">Acompte {{ number_format(abs($reste),2) }}</span>
+          @else
+            {{ number_format($reste,2) }}
+          @endif
+        </td>
         <td>{{ $f->updated_at ? format_dt($f->updated_at) : ($f->created_at ? format_dt($f->created_at) : '—') }}</td>
         <td>
           <button class="btn btn-sm btn-success btn-pay" data-id="{{ $f->id }}" data-balance="{{ $f->montant_total - $f->montant_paye }}">Payer</button>
-          <a href="{{ route('facturations.print', $f) }}" target="_blank" class="btn btn-sm btn-primary">Imprimer</a>
+          <a href="{{ route('facturations.print', $f) }}" class="btn btn-sm btn-primary">Imprimer</a>
           <a href="{{ route('facturations.show', $f) }}" class="btn btn-sm btn-outline-secondary">View</a>
         </td>
       </tr>
@@ -108,7 +120,7 @@
             </select>
           </div>
         </div>
-        <div class="modal-footer"><button class="btn btn-success">Enregistrer</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button></div>
+        <div class="modal-footer"><button id="paySubmitBtn" class="btn btn-success">Enregistrer</button><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button></div>
       </form>
     </div>
   </div>
@@ -118,12 +130,31 @@
 <script>
 document.addEventListener('DOMContentLoaded', function(){
   const payModal = new bootstrap.Modal(document.getElementById('payModal'));
+
+  // Reset submit button when modal closes
+  document.getElementById('payModal').addEventListener('hidden.bs.modal', function(){
+    const btn = document.getElementById('paySubmitBtn');
+    btn.disabled = false;
+    btn.textContent = 'Enregistrer';
+  });
+
+  // Block double submission
+  document.getElementById('payForm').addEventListener('submit', function(){
+    const btn = document.getElementById('paySubmitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Enregistrement...';
+  });
+
   document.querySelectorAll('.btn-pay').forEach(btn => {
     btn.addEventListener('click', function(){
       const id = this.dataset.id;
       const balance = parseFloat(this.dataset.balance) || 0;
       document.getElementById('modal_facturation_id').value = id;
       document.getElementById('modal_montant').value = balance.toFixed(2);
+      // reset submit state
+      const submitBtn = document.getElementById('paySubmitBtn');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Enregistrer';
       payModal.show();
     });
   });

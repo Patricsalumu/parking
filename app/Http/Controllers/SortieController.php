@@ -41,7 +41,7 @@ class SortieController extends Controller
         if ($start) $query->whereDate('date_entree', '>=', $start);
         if ($end) $query->whereDate('date_entree', '<=', $end);
 
-        $entrees = $query->orderBy('date_entree','desc')->paginate(20);
+        $entrees = $query->orderBy('numero','asc')->paginate(20);
         $entrees->appends(request()->all());
 
         // attach time-since-facturation info for views
