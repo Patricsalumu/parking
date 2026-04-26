@@ -64,7 +64,10 @@ class ClientController extends Controller
 
     public function exportCsv()
     {
-        $rows = Client::query()
+                $start = request()->input('start_date', null);
+                $end = request()->input('end_date', null);
+
+                $rows = Client::query()
             ->select('clients.*')
             ->selectSub(function($q){
                 $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
@@ -84,11 +87,43 @@ class ClientController extends Controller
             ->withCount('entrees')
             ->orderBy('clients.id')
             ->get();
+                if ($start || $end) {
+                        $rows = Client::query()
+                                ->select('clients.*')
+                                ->selectSub(function($q) use ($start, $end){
+                                        $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                                            ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                                            ->whereColumn('entrees.client_id','clients.id')
+                                            ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                                            ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                                }, 'total_billed')
+                                ->selectSub(function($q) use ($start, $end){
+                                        $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                                            ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                                            ->whereColumn('entrees.client_id','clients.id')
+                                            ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                                            ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                                }, 'total_paid')
+                                ->selectSub(function($q) use ($start, $end){
+                                        $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                                            ->selectRaw('COALESCE(SUM(facturations.reduction),0)')
+                                            ->whereColumn('entrees.client_id','clients.id')
+                                            ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                                            ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                                }, 'total_reduction')
+                                ->withCount('entrees')
+                                ->orderBy('clients.id')
+                                ->get();
+                }
 
         $filename = 'clients_'.now()->format('Ymd_His').'.csv';
         $headers = ['Content-Type'=>'text/csv','Content-Disposition'=>"attachment; filename=\"{$filename}\""];
         $callback = function() use ($rows) {
             $out = fopen('php://output','w');
+            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Start Date', request()->input('start_date')]);
+            fputcsv($out, ['End Date', request()->input('end_date')]);
+            fputcsv($out, []);
             fputcsv($out, ['ID','Nom','Telephone','#Entrées','Total facturé','Total payé','Total réduction','Reste']);
             foreach($rows as $r) {
                 $totalBilled = $r->total_billed ?? 0;
@@ -113,6 +148,9 @@ class ClientController extends Controller
 
     public function exportPdf()
     {
+        $start = request()->input('start_date', null);
+        $end = request()->input('end_date', null);
+
         $rows = Client::query()
             ->select('clients.*')
             ->selectSub(function($q){
@@ -133,6 +171,34 @@ class ClientController extends Controller
             ->withCount('entrees')
             ->orderBy('clients.id')
             ->get();
+        if ($start || $end) {
+            $rows = Client::query()
+                ->select('clients.*')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                      ->whereColumn('entrees.client_id','clients.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_billed')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                      ->whereColumn('entrees.client_id','clients.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_paid')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.reduction),0)')
+                      ->whereColumn('entrees.client_id','clients.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_reduction')
+                ->withCount('entrees')
+                ->orderBy('clients.id')
+                ->get();
+        }
 
         if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
             $pdf = app()->make('dompdf.wrapper');

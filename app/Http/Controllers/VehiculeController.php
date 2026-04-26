@@ -106,27 +106,58 @@ class VehiculeController extends Controller
 
     public function exportCsv()
     {
-        $rows = Vehicule::query()
+                $start = request()->input('start_date', null);
+                $end = request()->input('end_date', null);
+
+                $rows = Vehicule::query()
             ->select('vehicules.*')
             ->selectSub(function($q){
-                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
-                  ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
-                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+                                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                                    ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                                    ->whereColumn('entrees.vehicule_id','vehicules.id');
             }, 'total_billed')
             ->selectSub(function($q){
-                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
-                  ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
-                  ->whereColumn('entrees.vehicule_id','vehicules.id');
+                                $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                                    ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                                    ->whereColumn('entrees.vehicule_id','vehicules.id');
             }, 'total_paid')
             ->withCount('entrees')
             ->with('client')
             ->orderBy('vehicules.id')
             ->get();
+        // apply date filters on aggregates if provided
+        if ($start || $end) {
+            $rows = Vehicule::query()
+                ->select('vehicules.*')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                      ->whereColumn('entrees.vehicule_id','vehicules.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_billed')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                      ->whereColumn('entrees.vehicule_id','vehicules.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_paid')
+                ->withCount('entrees')
+                ->with('client')
+                ->orderBy('vehicules.id')
+                ->get();
+        }
 
         $filename = 'vehicules_'.now()->format('Ymd_His').'.csv';
         $headers = ['Content-Type'=>'text/csv','Content-Disposition'=>"attachment; filename=\"{$filename}\""];
         $callback = function() use ($rows) {
             $out = fopen('php://output','w');
+            // write export metadata: export date and optional date range
+            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Start Date', request()->input('start_date')]);
+            fputcsv($out, ['End Date', request()->input('end_date')]);
+            fputcsv($out, []);
             fputcsv($out, ['ID','Plaque','Client','#Entrées','Total facturé','Total payé','Reste']);
             foreach($rows as $r){
                 $totalBilled = $r->total_billed ?? 0;
@@ -149,6 +180,9 @@ class VehiculeController extends Controller
 
     public function exportPdf()
     {
+        $start = request()->input('start_date', null);
+        $end = request()->input('end_date', null);
+
         $rows = Vehicule::query()
             ->select('vehicules.*')
             ->selectSub(function($q){
@@ -165,6 +199,28 @@ class VehiculeController extends Controller
             ->with('client')
             ->orderBy('vehicules.id')
             ->get();
+        if ($start || $end) {
+            $rows = Vehicule::query()
+                ->select('vehicules.*')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.montant_total),0)')
+                      ->whereColumn('entrees.vehicule_id','vehicules.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_billed')
+                ->selectSub(function($q) use ($start, $end){
+                    $q->from('entrees')->join('facturations','facturations.entree_id','=','entrees.id')
+                      ->selectRaw('COALESCE(SUM(facturations.montant_paye),0)')
+                      ->whereColumn('entrees.vehicule_id','vehicules.id')
+                      ->when($start, function($q2) use ($start){ $q2->whereDate('facturations.created_at','>=',$start); })
+                      ->when($end, function($q2) use ($end){ $q2->whereDate('facturations.created_at','<=',$end); });
+                }, 'total_paid')
+                ->withCount('entrees')
+                ->with('client')
+                ->orderBy('vehicules.id')
+                ->get();
+        }
 
         if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
             $pdf = app()->make('dompdf.wrapper');

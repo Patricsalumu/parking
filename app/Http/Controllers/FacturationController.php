@@ -74,9 +74,12 @@ class FacturationController extends Controller
             'Content-Type' => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
-
-        $callback = function() use ($rows) {
+        $callback = function() use ($rows, $start, $end) {
             $out = fopen('php://output','w');
+            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Start Date', $start]);
+            fputcsv($out, ['End Date', $end]);
+            fputcsv($out, []);
             fputcsv($out, ['ID','Date','Entree','Plaque','Client','Categorie','Total','Paye','Reste','Utilisateur']);
             foreach ($rows as $r) {
                 fputcsv($out, [
@@ -85,7 +88,7 @@ class FacturationController extends Controller
                     $r->entree_id,
                     $r->entree?->vehicule?->plaque,
                     $r->entree?->client?->nom,
-                    $r->categorie?->nom,
+                    $r->entree?->categorie?->nom ?? $r->categorie?->nom,
                     number_format($r->montant_total,2),
                     number_format($r->montant_paye,2),
                     number_format(($r->montant_total - ($r->montant_paye ?? 0)),2),
@@ -116,14 +119,15 @@ class FacturationController extends Controller
         }
 
         $rows = $query->orderBy('created_at','desc')->get();
+        $exportDate = \Carbon\Carbon::now()->format('Y-m-d H:i');
 
         if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
             $pdf = app()->make('dompdf.wrapper');
-            $pdf->loadView('facturations.export_pdf', compact('rows'));
+            $pdf->loadView('facturations.export_pdf', compact('rows','start','end','exportDate'));
             return $pdf->download('facturations_'.now()->format('Ymd_His').'.pdf');
         }
 
-        return view('facturations.export_pdf', compact('rows'));
+        return view('facturations.export_pdf', compact('rows','start','end','exportDate'));
     }
 
     public function create()

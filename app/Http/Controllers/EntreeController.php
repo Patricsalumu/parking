@@ -87,8 +87,12 @@ class EntreeController extends Controller
             'Content-Disposition' => "attachment; filename=\"{$filename}\"",
         ];
 
-        $callback = function() use ($rows) {
+        $callback = function() use ($rows, $start, $end) {
             $out = fopen('php://output', 'w');
+            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Start Date', $start]);
+            fputcsv($out, ['End Date', $end]);
+            fputcsv($out, []);
             fputcsv($out, ['ID','Date Entree','Plaque','Compagnie','Client','Utilisateur','Observation']);
             foreach ($rows as $r) {
                 fputcsv($out, [
@@ -128,13 +132,14 @@ class EntreeController extends Controller
         $rows = $query->orderBy('date_entree','desc')->get();
 
         // If DomPDF is installed use it, otherwise return HTML for browser print
+        $exportDate = \Carbon\Carbon::now()->format('Y-m-d H:i');
         if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
             $pdf = app()->make('dompdf.wrapper');
-            $pdf->loadView('entrees.export_pdf', compact('rows'));
+            $pdf->loadView('entrees.export_pdf', compact('rows','start','end','exportDate'));
             return $pdf->download('entrees_'.now()->format('Ymd_His').'.pdf');
         }
         // fallback: render HTML view and let user print to PDF from browser
-        return view('entrees.export_pdf', compact('rows'));
+        return view('entrees.export_pdf', compact('rows','start','end','exportDate'));
     }
 
     public function create()
