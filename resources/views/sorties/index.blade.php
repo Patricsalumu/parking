@@ -57,12 +57,13 @@
       <th>Date Sortie</th>
       <th>Utilisateur</th>
       <th>Facturation</th>
+      <th>Depuis facturation</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     @foreach($entrees as $e)
-    <tr class="{{ $e->date_sortie ? 'table-danger' : '' }}">
+    <tr data-entree-id="{{ $e->id }}" class="{{ $e->date_sortie ? 'table-danger' : '' }}">
       <td>{{ $entrees->firstItem() + $loop->index }}</td>
       <td>{{ $e->numero_formatted ?? $e->numero }}</td>
       <td>{{ $e->vehicule?->plaque }}</td>
@@ -72,13 +73,24 @@
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->essieux ?? '-' }}</td>
       <td>{{ $e->client?->nom }}</td>
       <td>{{ $e->date_entree ? \Carbon\Carbon::parse($e->date_entree)->format('Y-m-d H:i') : '' }}</td>
-      <td>{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
+      <td class="td-date-sortie">{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
       <td>{{ $e->user?->name }}</td>
       <td>
         @if($e->facturation)
           #{{ $e->facturation->numero_formatted ?? $e->facturation->numero ?? $e->facturation->id }} - {{ $e->categorie?->nom ?? ($e->facturation->categorie?->nom ?? 'N/C') }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
         @else
           <span class="text-muted">Aucune</span>
+        @endif
+      </td>
+      <td class="td-since-facturation">
+        @if($e->facturation && $e->facturation->updated_at)
+          @php
+            $u = \Carbon\Carbon::parse($e->facturation->updated_at);
+            $diff = $u->diff(\Carbon\Carbon::now());
+          @endphp
+          {{ $diff->d }}j {{ $diff->h }}h {{ $diff->i }}m
+        @else
+          -
         @endif
       </td>
       <td>
@@ -163,6 +175,43 @@ document.addEventListener('DOMContentLoaded', function(){
         }).catch(err => {
           console.error('Sortie confirm error', err);
           alert('Erreur réseau lors de la confirmation');
+        });
+      }
+      if (form && form.id === 'confirmApurerForm') {
+        e.preventDefault();
+        const url = form.action;
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': token || '',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        }).then(r => r.json()).then(data => {
+          if (data && data.success) {
+            // close modal
+            const outer = document.getElementById('sortieModal');
+            bootstrap.Modal.getInstance(outer)?.hide();
+            try {
+              const row = document.querySelector('tr[data-entree-id="' + data.entree_id + '"]');
+              if (row) {
+                const dateCell = row.querySelector('.td-date-sortie');
+                if (dateCell) dateCell.textContent = data.date_sortie || '-';
+                const sinceCell = row.querySelector('.td-since-facturation');
+                if (sinceCell && data.sinceBilled) {
+                  sinceCell.textContent = (data.sinceBilled.days||0) + 'j ' + (data.sinceBilled.hours||0) + 'h ' + (data.sinceBilled.minutes||0) + 'm';
+                }
+                row.classList.add('table-danger');
+              }
+            } catch(err) { console.error('Update row error', err); }
+          } else {
+            alert(data?.message || 'Erreur lors de l\'apurement');
+          }
+        }).catch(err => {
+          console.error('Apurer error', err);
+          alert('Erreur réseau lors de l\'apurement');
         });
       }
     });

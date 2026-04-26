@@ -62,16 +62,32 @@ class SortieController extends Controller
         $entree->load('vehicule','client','user','facturation.categorie');
         $fact = $entree->facturation;
         $canExit = false;
+        $blockedDueTime = false;
+        $sinceBilled = null;
+        $minutesSince = null;
         if ($fact) {
             $total = $fact->montant_total ?? 0;
             $paye = $fact->montant_paye ?? 0;
             $canExit = ($paye >= $total);
+            // compute time since last update on the facture
+            $since = \Carbon\Carbon::parse($fact->updated_at ?? now())->diff(Carbon::now());
+            $sinceBilled = [
+                'days' => $since->d,
+                'hours' => $since->h,
+                'minutes' => $since->i,
+            ];
+            // block exit if more than 60 minutes passed since last facture update
+            $minutesSince = Carbon::now()->diffInMinutes($fact->updated_at ?? now());
+            if ($minutesSince > 60) {
+                $blockedDueTime = true;
+                $canExit = false;
+            }
         }
         // Return fragment for AJAX requests (modal load). If opened directly, render full page.
         if ($request->ajax() || $request->wantsJson() || $request->header('X-Requested-With') === 'XMLHttpRequest') {
-            return view('sorties.show', compact('entree','fact','canExit'));
+            return view('sorties.show', compact('entree','fact','canExit','sinceBilled','blockedDueTime','minutesSince'));
         }
-        return view('sorties.full', compact('entree','fact','canExit'));
+        return view('sorties.full', compact('entree','fact','canExit','sinceBilled','blockedDueTime','minutesSince'));
     }
 
     public function update(Request $request, Entree $entree)
@@ -99,6 +115,12 @@ class SortieController extends Controller
             return back()->with('error','Impossible de faire la sortie: la date de paiement n\'est pas enregistrée.');
         }
 
+        // enforce 1 hour window since last facturation update
+        $minutesSince = Carbon::now()->diffInMinutes($fact->updated_at ?? now());
+        if ($minutesSince > 60) {
+            return back()->with('error','Impossible de faire la sortie: la facture a été modifiée il y a plus d\'une heure. Veuillez refacturer avant la sortie.');
+        }
+
         $entree->date_sortie = Carbon::now();
         $entree->sortie_user_id = auth()->id();
         // mark as exited
@@ -112,5 +134,48 @@ class SortieController extends Controller
             ]);
         }
         return redirect()->route('sorties.index')->with('success','Sortie enregistrée');
+    }
+
+    /**
+     * Apurer: touch the related facturation so the 1-hour block is cleared.
+     */
+    public function apurer(Request $request, Entree $entree)
+    {
+        // check access
+        if (!in_array(auth()->user()->role, ['superadmin'])) {
+            $acc = auth()->user()->acces;
+            if (!$acc || !$acc->sortie) {
+                abort(403,'Unauthorized');
+            }
+        }
+
+        $entree->load('facturation');
+        $fact = $entree->facturation;
+        if (!$fact) {
+            return back()->with('error','Facture introuvable pour cette entrée.');
+        }
+
+        // Register sortie using the facture's updated_at (antidate the sortie)
+        $dateSortie = $fact->updated_at ?? Carbon::now();
+        $entree->date_sortie = Carbon::parse($dateSortie);
+        $entree->sortie_user_id = auth()->id();
+        $entree->sortie = 1;
+        $entree->save();
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'entree_id' => $entree->id,
+                'date_sortie' => $entree->date_sortie->format('Y-m-d H:i'),
+                'sinceBilled' => [
+                    'days' => 0,
+                    'hours' => 0,
+                    'minutes' => 0,
+                ],
+                'message' => 'Sortie enregistrée (antidatée) à la date de la facture.'
+            ]);
+        }
+
+        return back()->with('success','Sortie enregistrée (antidatée) à la date de la facture.');
     }
 }

@@ -56,11 +56,18 @@ class PaiementController extends Controller
 
         // update facturation
         $fact = Facturation::find($data['facturation_id']);
+        // preserve original updated_at to avoid touching the facture's updated timestamp on payment
+        $originalUpdatedAt = $fact->getOriginal('updated_at');
         $fact->montant_paye = ($fact->montant_paye ?? 0) + $data['montant'];
         if ($fact->montant_paye >= $fact->montant_total) {
             $fact->date_paiement = $paiement->date_paiement;
         }
+        // save without updating timestamps so updated_at remains unchanged
+        $fact->timestamps = false;
         $fact->save();
+        $fact->timestamps = true;
+        // ensure model has original updated_at in memory
+        $fact->setRawAttributes(array_merge($fact->getAttributes(), ['updated_at' => $originalUpdatedAt]));
 
         // Create accounting entry for the payment: debit caisse (user's caisse_compte_id), credit client (411000)
         try {
