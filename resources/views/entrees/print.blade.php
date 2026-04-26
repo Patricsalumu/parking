@@ -5,14 +5,14 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Bon d'entrée #{{ $entree->numero_formatted ?? $entree->numero ?? $entree->id }}</title>
   <style>
-    body{ font-family: Arial, Helvetica, sans-serif; width:80mm; margin:0; padding:8px; }
+    body{ font-family: Arial, Helvetica, sans-serif; width:70mm; margin:0; padding:8px; }
     .company{ text-align:center; font-weight:700; }
     .slogan{ text-align:center; font-size:0.9em; color:#555 }
     .small{ font-size:0.9em }
     .tbl{ width:100%; margin-top:8px }
     .tbl td{ padding:3px 0 }
     .qr{ text-align:center; margin:8px 0 }
-    @media print { body{ width:80mm; } }
+    @media print { body{ width:70mm; } }
   </style>
 </head>
 <body>
@@ -41,6 +41,7 @@
       <tr><td class="small">Compagnie</td><td class="small">: {{ $entree->vehicule?->compagnie }}</td></tr>
       <tr><td class="small">Plaque</td><td class="small">: {{ $entree->vehicule?->plaque }}</td></tr>
       <tr><td class="small">Enregistré par</td><td class="small">: {{ $entree->user?->name }}</td></tr>
+      <tr><td class="small">Catégorie facture</td><td class="small">: {{ $entree->facturation?->categorie?->nom ?? $entree->categorie?->nom ?? '-' }}</td></tr>
     </table>
   </div>
 
