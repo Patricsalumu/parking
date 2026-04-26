@@ -89,6 +89,8 @@
       </div>
     </div>
     
+    <!-- Toast container -->
+    <div id="toastContainer" style="position:fixed;top:1rem;right:1rem;z-index:1080"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
       (function(){
@@ -110,6 +112,51 @@
         if(toggle){ toggle.addEventListener('click', function(e){ e.preventDefault(); setCollapsed(!document.body.classList.contains('collapsed-sidebar')); }); }
         if(hideBtn){ hideBtn.addEventListener('click', function(e){ e.preventDefault(); setCollapsed(true); }); }
       })();
+    </script>
+    <script>
+      // Toast helper: showBootstrapToast(message, type)
+      function showToast(message, type='success', timeout=4500) {
+        try {
+          const container = document.getElementById('toastContainer');
+          if (!container) return;
+          const toastId = 't_' + Date.now() + Math.floor(Math.random()*1000);
+          const wrapper = document.createElement('div');
+          wrapper.innerHTML = `
+            <div id="${toastId}" class="toast align-items-center text-bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+              <div class="d-flex">
+                <div class="toast-body">${String(message).replace(/\n/g,'<br>')}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+              </div>
+            </div>`;
+          const el = wrapper.firstElementChild;
+          container.appendChild(el);
+          const bs = new bootstrap.Toast(el, { delay: timeout });
+          el.addEventListener('hidden.bs.toast', function(){ el.remove(); });
+          bs.show();
+        } catch(e){ console.error('showToast error', e); }
+      }
+
+      // Scan main for VISIBLE alerts and convert them to toasts; leave hidden alerts (e.g. builders) intact.
+      function initToasts() {
+        try {
+          const main = document.querySelector('main');
+          if (!main) return;
+          const allAlerts = Array.from(main.querySelectorAll('.alert'));
+          // only process alerts that are visible (not display:none)
+          const alerts = allAlerts.filter(a => {
+            try { return a.offsetParent !== null; } catch(e){ return false; }
+          });
+          alerts.forEach(a => {
+            const type = a.classList.contains('alert-success') ? 'success' : (a.classList.contains('alert-danger') ? 'danger' : 'info');
+            const msg = a.innerText.trim();
+            if (msg) showToast(msg, type);
+            a.remove();
+          });
+        } catch(e) { console.error('initToasts error', e); }
+      }
+      document.addEventListener('DOMContentLoaded', function(){ initToasts(); });
+      window.initToasts = initToasts;
+      window.showToast = showToast;
     </script>
     @stack('scripts')
   </body>

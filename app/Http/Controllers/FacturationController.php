@@ -146,7 +146,13 @@ class FacturationController extends Controller
     {
         $plaque = $request->query('plaque');
         if (empty($plaque)) return response()->json(['found'=>false]);
-        $veh = \App\Models\Vehicule::where('plaque', $plaque)->first();
+        $plaqueClean = trim($plaque);
+        // try case-insensitive exact match first
+        $veh = \App\Models\Vehicule::whereRaw('LOWER(plaque) = ?', [mb_strtolower($plaqueClean)])->first();
+        // fallback to partial match if exact not found
+        if (!$veh) {
+            $veh = \App\Models\Vehicule::where('plaque','like','%'.$plaqueClean.'%')->first();
+        }
         if (!$veh) return response()->json(['found'=>false]);
         // try open entree first
         $entree = Entree::with('client','vehicule','user')

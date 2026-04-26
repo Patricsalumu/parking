@@ -86,6 +86,15 @@ class PaiementController extends Controller
             \Log::error('Accounting entry failed for paiement '.$paiement->id.': '.$e->getMessage());
         }
 
-        return redirect()->route('paiements.index')->with('success','Paiement enregistré');
+        // On normal request, redirect to facturations index (not paiements index)
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'redirect_url' => route('facturations.index'),
+                'message' => 'Paiement enregistré'
+            ]);
+        }
+
+        return redirect()->route('facturations.index')->with('success','Paiement enregistré');
     }
 }
