@@ -60,8 +60,8 @@
       <div class="card quick-card shadow-sm">
         <div class="card-body">
           <h6 class="card-title">Véhicules</h6>
-          <h2 class="mb-0">{{ \App\Models\Vehicule::count() }}</h2>
-          <small class="text-muted">Véhicules enregistrés</small>
+          <h2 class="mb-0">{{ \App\Models\Entree::whereNull('date_sortie')->count() }}</h2>
+          <small class="text-muted">Véhicules actuellement présents</small>
         </div>
       </div>
     </div>
