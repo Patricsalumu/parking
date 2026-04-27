@@ -65,7 +65,8 @@ class CaisseController extends Controller
             $query->where('libelle', 'like', "%{$q}%");
         }
 
-        $entries = $query->orderBy('date','desc')->orderBy('id','desc')->paginate(50)->appends($request->query());
+        $entries = $query->orderBy('date','desc')->orderBy('id','desc')->paginate(15);
+        $entries->appends($request->query());
 
         $selectedCompte = null;
         if ($compte_id) {
@@ -97,6 +98,144 @@ class CaisseController extends Controller
         $balance = $total_entrees - $total_sorties;
 
         return view('caisse.index', compact('entries','comptes','compte_id','start','end','q','total_entrees','total_sorties','balance','selectedCompte','comptes_debit','comptes_credit'));
+    }
+
+    public function exportCsv(Request $request)
+    {
+        $q = $request->query('q');
+        $compte_id = $request->query('compte_id');
+        $start = $request->query('start_date');
+        $end = $request->query('end_date');
+
+        // apply same defaults as index: default dates to today and default compte_id to user's caisse
+        if (empty($start)) { $start = Carbon::today()->toDateString(); }
+        if (empty($end)) { $end = Carbon::today()->toDateString(); }
+        if (empty($compte_id)) { $compte_id = auth()->user()->caisse_compte_id ?? null; }
+
+        $query = JournalCompte::with(['compteDebit','compteCredit']);
+        if ($compte_id) {
+            $query->where(function($sub) use ($compte_id){
+                $sub->where('compte_debit_id', $compte_id)
+                    ->orWhere('compte_credit_id', $compte_id);
+            });
+        }
+        if ($start) $query->where('date','>=',$start);
+        if ($end) $query->where('date','<=',$end);
+        if ($q) $query->where('libelle','like','%'.$q.'%');
+
+        $rows = $query->orderBy('date','desc')->orderBy('id','desc')->get();
+
+        // compute totals like on the index page
+        if ($compte_id) {
+            $total_entrees = JournalCompte::where('compte_debit_id', $compte_id)
+                ->when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->when($q, fn($q2) => $q2->where('libelle','like','%'.$q.'%'))
+                ->sum('montant');
+
+            $total_sorties = JournalCompte::where('compte_credit_id', $compte_id)
+                ->when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->when($q, fn($q2) => $q2->where('libelle','like','%'.$q.'%'))
+                ->sum('montant');
+        } else {
+            $total_entrees = JournalCompte::when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->when($q, fn($q2) => $q2->where('libelle','like','%'.$q.'%'))
+                ->sum('montant');
+
+            $total_sorties = $total_entrees;
+        }
+
+        $balance = $total_entrees - $total_sorties;
+
+        $filename = 'caisse_'.now()->format('Ymd_His').'.csv';
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+        ];
+
+        $callback = function() use ($rows, $start, $end, $total_entrees, $total_sorties, $balance) {
+            $out = fopen('php://output','w');
+            fputcsv($out, ['Export Date', \Carbon\Carbon::now()->format('Y-m-d H:i')]);
+            fputcsv($out, ['Start Date', $start]);
+            fputcsv($out, ['End Date', $end]);
+            fputcsv($out, []);
+            fputcsv($out, ['Total Entrées', $total_entrees]);
+            fputcsv($out, ['Total Sorties', $total_sorties]);
+            fputcsv($out, ['Solde', $balance]);
+            fputcsv($out, []);
+            fputcsv($out, ['ID','Date','Libelle','Compte Debit','Compte Credit','Montant']);
+            foreach ($rows as $r) {
+                fputcsv($out, [
+                    $r->id,
+                    $r->date,
+                    $r->libelle,
+                    $r->compteDebit?->numero . ' - ' . ($r->compteDebit?->nom ?? ''),
+                    $r->compteCredit?->numero . ' - ' . ($r->compteCredit?->nom ?? ''),
+                    $r->montant,
+                ]);
+            }
+            fclose($out);
+        };
+        return response()->stream($callback, 200, $headers);
+    }
+
+    public function exportPdf(Request $request)
+    {
+        $q = $request->query('q');
+        $compte_id = $request->query('compte_id');
+        $start = $request->query('start_date');
+        $end = $request->query('end_date');
+
+        if (empty($start)) { $start = Carbon::today()->toDateString(); }
+        if (empty($end)) { $end = Carbon::today()->toDateString(); }
+        if (empty($compte_id)) { $compte_id = auth()->user()->caisse_compte_id ?? null; }
+
+        $query = JournalCompte::with(['compteDebit','compteCredit']);
+        if ($compte_id) {
+            $query->where(function($sub) use ($compte_id){
+                $sub->where('compte_debit_id', $compte_id)
+                    ->orWhere('compte_credit_id', $compte_id);
+            });
+        }
+        if ($start) $query->where('date','>=',$start);
+        if ($end) $query->where('date','<=',$end);
+        if ($q) $query->where('libelle','like','%'.$q.'%');
+
+        $rows = $query->orderBy('date','desc')->orderBy('id','desc')->get();
+
+        // compute totals like on the index page
+        if ($compte_id) {
+            $total_entrees = JournalCompte::where('compte_debit_id', $compte_id)
+                ->when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->when($q, fn($q2) => $q2->where('libelle','like','%'.$q.'%'))
+                ->sum('montant');
+
+            $total_sorties = JournalCompte::where('compte_credit_id', $compte_id)
+                ->when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->when($q, fn($q2) => $q2->where('libelle','like','%'.$q.'%'))
+                ->sum('montant');
+        } else {
+            $total_entrees = JournalCompte::when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->when($q, fn($q2) => $q2->where('libelle','like','%'.$q.'%'))
+                ->sum('montant');
+
+            $total_sorties = $total_entrees;
+        }
+
+        $balance = $total_entrees - $total_sorties;
+
+        $exportDate = \Carbon\Carbon::now()->format('Y-m-d H:i');
+        if (class_exists(\Barryvdh\DomPDF\PDF::class) || class_exists(\Barryvdh\DomPDF\Facade::class)) {
+            $pdf = app()->make('dompdf.wrapper');
+            $pdf->loadView('caisse.export_pdf', compact('rows','start','end','exportDate','compte_id','total_entrees','total_sorties','balance'));
+            return $pdf->download('caisse_'.now()->format('Ymd_His').'.pdf');
+        }
+        return view('caisse.export_pdf', compact('rows','start','end','exportDate','compte_id','total_entrees','total_sorties','balance'));
     }
 
     public function storeSortie(Request $request)

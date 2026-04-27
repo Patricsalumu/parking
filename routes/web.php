@@ -63,6 +63,8 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('categories', CategorieController::class);
     Route::get('paiements', [PaiementController::class,'index'])->name('paiements.index');
     Route::get('caisse', [\App\Http\Controllers\CaisseController::class,'index'])->name('caisse.index');
+    Route::get('caisse/export/csv', [\App\Http\Controllers\CaisseController::class,'exportCsv'])->name('caisse.export.csv');
+    Route::get('caisse/export/pdf', [\App\Http\Controllers\CaisseController::class,'exportPdf'])->name('caisse.export.pdf');
     Route::post('caisse/sortie', [\App\Http\Controllers\CaisseController::class,'storeSortie'])->name('caisse.sortie');
     Route::get('paiements/create/{facturation}', [PaiementController::class,'create'])->name('paiements.create');
     Route::post('paiements', [PaiementController::class,'store'])->name('paiements.store');

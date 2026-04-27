@@ -31,6 +31,13 @@
   </div>
 </form>
 
+<div class="mt-2 d-flex gap-2">
+  @php $qs = http_build_query(request()->except('page')) @endphp
+  <a href="{{ url('caisse/export/csv') }}?{{ $qs }}" class="btn btn-outline-success btn-sm">Export CSV</a>
+  <a href="{{ url('caisse/export/pdf') }}?{{ $qs }}" class="btn btn-outline-primary btn-sm">Export PDF</a>
+  <a href="{{ route('caisse.index') }}" class="btn btn-light btn-sm">Clear</a>
+</div>
+
 <div class="mb-3">
   <strong>Total Entrées:</strong> {{ number_format($total_entrees ?? 0,2,',',' ') }}
   &nbsp; | &nbsp;
@@ -79,7 +86,17 @@
   </tbody>
 </table>
 
-{{ $entries->links() }}
+<div class="small-pagination">{{ $entries->appends(request()->all())->links() }}</div>
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const container = document.querySelector('.small-pagination');
+  if (!container) return;
+  container.querySelectorAll('svg, .bi').forEach(el => el.remove());
+});
+</script>
+@endpush
 
 @endsection
 
