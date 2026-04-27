@@ -22,6 +22,26 @@
       .small-pagination .page-link { padding: .15rem .35rem; }
       .small-pagination .page-link svg { width: .9em; height: .9em; }
       .small-pagination .page-link .bi { font-size: 0.75rem; }
+
+      /* Enhanced sidebar styles */
+      .sidebar { background: linear-gradient(180deg,#ffffff,#f8f9fa); border-radius:6px; }
+      .sidebar .nav-link { color: #333; padding: .5rem .75rem; border-radius:6px; }
+      .sidebar .nav-link:hover { background: rgba(0,0,0,0.03); color:#000; text-decoration:none; }
+      .sidebar .nav-link .bi { font-size:1rem; color:#0d6efd; }
+      .sidebar .collapse .nav-link { padding-left:1.25rem; }
+      .sidebar-wrapper .sidebar { margin: .75rem; }
+      /* Offcanvas mobile list */
+      .offcanvas .list-group-item { border:0; }
+      .offcanvas .list-group-item:hover { background: #f1f3f5; }
+      /* Brand tweaks */
+      .navbar-brand { font-weight:700; letter-spacing:.5px; }
+      /* Dashboard responsive tweaks */
+      @media (max-width: 767.98px) {
+        .dashboard-title { display: none !important; }
+        .dashboard-actions { gap: .5rem; }
+        .dashboard-actions .btn { white-space: nowrap; }
+        .dashboard-actions { flex-wrap: nowrap; }
+      }
     </style>
   </head>
   <body>
@@ -29,11 +49,14 @@
       <div class="container-fluid">
         <a class="navbar-brand" href="{{ route('dashboard') }}">IDDI LOGISTIC</a>
         @auth
-          <button id="sidebarToggle" class="btn btn-sm btn-outline-light me-2 d-none d-md-inline" title="Toggle menu"><i class="bi bi-list"></i></button>
+          <!-- Single menu toggle: opens offcanvas on mobile, toggles sidebar on desktop -->
+          <button id="sidebarToggle" type="button" class="btn btn-sm btn-outline-light me-2" title="Menu" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas"><i class="bi bi-list"></i></button>
         @endauth
+        @guest
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navmenu">
           <span class="navbar-toggler-icon"></span>
         </button>
+        @endguest
         <div class="collapse navbar-collapse" id="navmenu">
           <ul class="navbar-nav ms-auto">
             @auth
@@ -47,21 +70,21 @@
     <div class="container-fluid">
       <div class="row">
         @auth
-        <div id="sidebar" class="col-md-2 bg-light vh-100 d-none d-md-block sidebar">
-          <div class="p-3">
-            <div class="d-flex justify-content-between align-items-center mb-2">
+        <div id="sidebar" class="col-md-2 d-none d-md-block sidebar-wrapper">
+          <aside class="bg-light vh-100 sidebar p-3 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3">
               <h5 class="mb-0">Menu</h5>
               <button id="sidebarHide" class="btn btn-sm btn-outline-secondary d-none d-md-inline" title="Hide menu"><i class="bi bi-x"></i></button>
             </div>
             <ul class="nav flex-column">
-              <li class="nav-item"><a class="nav-link" href="{{ route('entrees.index') }}">Entrées</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('facturations.index') }}">Facturation</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('sorties.index') }}">Sorties</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('caisse.index') }}">Caisse</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('clients.index') }}">Clients</a></li>
-              <li class="nav-item"><a class="nav-link" href="{{ route('vehicules.index') }}">Véhicules</a></li>
-              <li class="nav-item dropdown">
-                <a class="nav-link" href="#" data-bs-toggle="collapse" data-bs-target="#comptaMenu">Comptabilité</a>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('entrees.index') }}"><i class="bi bi-box-arrow-in-right me-2"></i>Entrées</a></li>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('facturations.index') }}"><i class="bi bi-receipt me-2"></i>Facturation</a></li>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('sorties.index') }}"><i class="bi bi-box-arrow-right me-2"></i>Sorties</a></li>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('caisse.index') }}"><i class="bi bi-cash-stack me-2"></i>Caisse</a></li>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('clients.index') }}"><i class="bi bi-people me-2"></i>Clients</a></li>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('vehicules.index') }}"><i class="bi bi-truck me-2"></i>Véhicules</a></li>
+              <li class="nav-item">
+                <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#comptaMenu" role="button" aria-expanded="false" aria-controls="comptaMenu"><i class="bi bi-journal-text me-2"></i>Comptabilité</a>
                 <div class="collapse" id="comptaMenu">
                   <ul class="nav flex-column ms-2">
                     <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.index') ?? '#' }}">Journal</a></li>
@@ -75,12 +98,12 @@
                 </div>
               </li>
               @if(auth()->user() && auth()->user()->role === 'superadmin')
-                <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Utilisateurs</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('categories.index') }}">Catégories</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('settings.entreprise') }}">Entreprise</a></li>
+                <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('users.index') }}"><i class="bi bi-person-gear me-2"></i>Utilisateurs</a></li>
+                <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('categories.index') }}"><i class="bi bi-tags me-2"></i>Catégories</a></li>
+                <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('settings.entreprise') }}"><i class="bi bi-building me-2"></i>Entreprise</a></li>
               @endif
             </ul>
-          </div>
+          </aside>
         </div>
         @endauth
 
@@ -97,9 +120,11 @@
     <div id="toastContainer" style="position:fixed;top:1rem;right:1rem;z-index:1080"></div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      (function(){
+      document.addEventListener('DOMContentLoaded', function(){
         const toggle = document.getElementById('sidebarToggle');
         const hideBtn = document.getElementById('sidebarHide');
+        // DEBUG: presence
+        try { console.debug('sidebar:init toggle=', !!toggle, 'hideBtn=', !!hideBtn, 'window.innerWidth=', window.innerWidth); } catch(e){}
         function setCollapsed(val){
           if(val){
             document.body.classList.add('collapsed-sidebar');
@@ -113,9 +138,30 @@
         if(localStorage.getItem('sidebarCollapsed') === '1'){
           document.body.classList.add('collapsed-sidebar');
         }
-        if(toggle){ toggle.addEventListener('click', function(e){ e.preventDefault(); setCollapsed(!document.body.classList.contains('collapsed-sidebar')); }); }
+
+        // Single toggle behaviour:
+        // - on small screens: open offcanvas (lookup at click time)
+        // - on md+ screens: toggle collapsed sidebar
+        if(toggle){
+          toggle.addEventListener('click', function(e){
+            e.preventDefault();
+            try{
+              console.debug('sidebar:click innerWidth=', window.innerWidth);
+              if(window.innerWidth < 768){
+                const offcanvasEl = document.getElementById('sidebarOffcanvas');
+                console.debug('sidebar:offcanvasEl=', offcanvasEl);
+                if(offcanvasEl){
+                  console.debug('sidebar:bootstrap=', typeof bootstrap !== 'undefined' && !!bootstrap.Offcanvas);
+                  const bs = (typeof bootstrap !== 'undefined' && bootstrap.Offcanvas) ? (bootstrap.Offcanvas.getInstance(offcanvasEl) || new bootstrap.Offcanvas(offcanvasEl)) : null;
+                  if(bs){ bs.show(); return; }
+                }
+              }
+            }catch(err){ console.error('sidebar:err', err); }
+            setCollapsed(!document.body.classList.contains('collapsed-sidebar'));
+          });
+        }
         if(hideBtn){ hideBtn.addEventListener('click', function(e){ e.preventDefault(); setCollapsed(true); }); }
-      })();
+      });
     </script>
     <script>
       // Toast helper: showBootstrapToast(message, type)
@@ -161,6 +207,57 @@
       document.addEventListener('DOMContentLoaded', function(){ initToasts(); });
       window.initToasts = initToasts;
       window.showToast = showToast;
+    </script>
+    <!-- Offcanvas sidebar for mobile -->
+    <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarOffcanvas" aria-labelledby="sidebarOffcanvasLabel">
+      <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="sidebarOffcanvasLabel">Menu</h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+      </div>
+      <div class="offcanvas-body p-0">
+        <nav class="list-group list-group-flush">
+          <a class="list-group-item list-group-item-action" href="{{ route('entrees.index') }}"><i class="bi bi-box-arrow-in-right me-2"></i>Entrées</a>
+          <a class="list-group-item list-group-item-action" href="{{ route('facturations.index') }}"><i class="bi bi-receipt me-2"></i>Facturation</a>
+          <a class="list-group-item list-group-item-action" href="{{ route('sorties.index') }}"><i class="bi bi-box-arrow-right me-2"></i>Sorties</a>
+          <a class="list-group-item list-group-item-action" href="{{ route('caisse.index') }}"><i class="bi bi-cash-stack me-2"></i>Caisse</a>
+          <a class="list-group-item list-group-item-action" href="{{ route('clients.index') }}"><i class="bi bi-people me-2"></i>Clients</a>
+          <a class="list-group-item list-group-item-action" href="{{ route('vehicules.index') }}"><i class="bi bi-truck me-2"></i>Véhicules</a>
+          <div class="list-group-item">
+            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#mobileCompta" role="button" aria-expanded="false" aria-controls="mobileCompta">Comptabilité <i class="bi bi-chevron-down"></i></a>
+            <div class="collapse mt-2" id="mobileCompta">
+              <a class="d-block ms-3" href="{{ route('journal_comptes.index') ?? '#' }}">Journal</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.grand_index') }}">Grand Livre</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.balances') }}">Balances</a>
+            </div>
+          </div>
+          @if(auth()->user() && auth()->user()->role === 'superadmin')
+            <a class="list-group-item list-group-item-action" href="{{ route('users.index') }}">Utilisateurs</a>
+            <a class="list-group-item list-group-item-action" href="{{ route('categories.index') }}">Catégories</a>
+            <a class="list-group-item list-group-item-action" href="{{ route('settings.entreprise') }}">Entreprise</a>
+          @endif
+          
+          <div class="list-group-item mt-2">
+            <form method="POST" action="{{ route('logout') }}">@csrf
+              <button type="submit" class="btn btn-link p-0 text-danger">Deconnexion</button>
+            </form>
+          </div>
+        </nav>
+      </div>
+    </div>
+
+    <script>
+      // Close offcanvas when a link is clicked (mobile UX)
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          const off = document.getElementById('sidebarOffcanvas');
+          if(!off) return;
+          const items = off.querySelectorAll('.list-group-item');
+          items.forEach(el => el.addEventListener('click', function(){
+            const bs = bootstrap.Offcanvas.getInstance(off) || new bootstrap.Offcanvas(off);
+            bs.hide();
+          }));
+        }catch(e){console.error(e)}
+      });
     </script>
     @stack('scripts')
   </body>

@@ -3,9 +3,9 @@
 @section('content')
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3">Tableau de bord</h1>
-    <div>
-      <a href="{{ route('entrees.create') }}" class="btn btn-primary me-2">New Entrée</a>
+    <h1 class="h3 dashboard-title">Tableau de bord</h1>
+    <div class="dashboard-actions d-flex">
+      <a href="{{ route('entrees.create') }}" class="btn btn-primary me-2">Entrées</a>
       <a href="{{ route('facturations.index') }}" class="btn btn-outline-secondary">Factures</a>
     </div>
   </div>
@@ -67,11 +67,11 @@
     </div>
   </div>
 
-  <div class="card">
+  <!-- <div class="card">
     <div class="card-body">
       <h5>Welcome, {{ auth()->user()->name }}</h5>
       <p class="text-muted">Use the menu to the left to manage entries, invoices and payments. Click the menu icon in the top bar to hide/show the sidebar; on desktop the state is remembered.</p>
     </div>
-  </div>
+  </div> -->
 </div>
 @endsection
