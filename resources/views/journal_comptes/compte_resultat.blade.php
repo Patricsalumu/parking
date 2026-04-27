@@ -11,9 +11,11 @@
     <table class="table table-sm">
       <thead><tr><th>Compte</th><th class="text-end">Montant</th></tr></thead>
       <tbody>
-        @foreach($charges_data as $c)
+        @forelse($charges_data as $c)
           <tr><td>{{ $c['compte']->numero }} - {{ $c['compte']->nom }}</td><td class="text-end">{{ number_format($c['value'],2,',',' ') }}</td></tr>
-        @endforeach
+        @empty
+          <tr><td colspan="2">Aucun compte de charge avec un solde non nul sur la période.</td></tr>
+        @endforelse
       </tbody>
       <tfoot><tr><th>Total Charges</th><th class="text-end">{{ number_format($total_charges,2,',',' ') }}</th></tr></tfoot>
     </table>
@@ -23,9 +25,11 @@
     <table class="table table-sm">
       <thead><tr><th>Compte</th><th class="text-end">Montant</th></tr></thead>
       <tbody>
-        @foreach($produits_data as $c)
+        @forelse($produits_data as $c)
           <tr><td>{{ $c['compte']->numero }} - {{ $c['compte']->nom }}</td><td class="text-end">{{ number_format($c['value'],2,',',' ') }}</td></tr>
-        @endforeach
+        @empty
+          <tr><td colspan="2">Aucun compte de produit avec un solde non nul sur la période.</td></tr>
+        @endforelse
       </tbody>
       <tfoot><tr><th>Total Produits</th><th class="text-end">{{ number_format($total_produits,2,',',' ') }}</th></tr></tfoot>
     </table>

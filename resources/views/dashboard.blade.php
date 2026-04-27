@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3">Dashboard</h1>
+    <h1 class="h3">Tableau de bord</h1>
     <div>
       <a href="{{ route('entrees.create') }}" class="btn btn-primary me-2">New Entrée</a>
       <a href="{{ route('facturations.index') }}" class="btn btn-outline-secondary">Factures</a>

@@ -27,7 +27,7 @@
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container-fluid">
-        <a class="navbar-brand" href="{{ route('dashboard') }}">Parking ERP</a>
+        <a class="navbar-brand" href="{{ route('dashboard') }}">IDDI LOGISTIC</a>
         @auth
           <button id="sidebarToggle" class="btn btn-sm btn-outline-light me-2 d-none d-md-inline" title="Toggle menu"><i class="bi bi-list"></i></button>
         @endauth
@@ -37,7 +37,7 @@
         <div class="collapse navbar-collapse" id="navmenu">
           <ul class="navbar-nav ms-auto">
             @auth
-              <li class="nav-item"><form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-sm btn-outline-light">Logout</button></form></li>
+              <li class="nav-item"><form method="POST" action="{{ route('logout') }}">@csrf<button class="btn btn-sm btn-outline-light">Deconnexion</button></form></li>
             @endauth
           </ul>
         </div>
@@ -75,7 +75,7 @@
                 </div>
               </li>
               @if(auth()->user() && auth()->user()->role === 'superadmin')
-                <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Users</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('users.index') }}">Utilisateurs</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('categories.index') }}">Catégories</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('settings.entreprise') }}">Entreprise</a></li>
               @endif

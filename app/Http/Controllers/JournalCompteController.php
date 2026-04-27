@@ -131,6 +131,7 @@ class JournalCompteController extends Controller
                 ->when($end, fn($q) => $q->where('date','<=',$end))
                 ->where('compte_credit_id',$c->id)->sum('montant');
             $val = $debit - $credit;
+            if (abs($val) < 0.0001) continue;
             $total_charges += $val;
             $charges_data[] = ['compte'=>$c,'value'=>$val];
         }
@@ -142,6 +143,7 @@ class JournalCompteController extends Controller
                 ->when($end, fn($q) => $q->where('date','<=',$end))
                 ->where('compte_credit_id',$c->id)->sum('montant');
             $val = $credit - $debit; // produits usually credit balance
+            if (abs($val) < 0.0001) continue;
             $total_produits += $val;
             $produits_data[] = ['compte'=>$c,'value'=>$val];
         }
@@ -166,30 +168,69 @@ class JournalCompteController extends Controller
         $passifs_classes = ['1'];
 
         $assets_total = 0; $passifs_total = 0;
-        foreach ($classes as $cl) {
-            $comptes = Compte::where('classe_id',$cl->id)->get();
-            $sum = 0;
-            foreach ($comptes as $c) {
-                $debit = JournalCompte::when($start, fn($q) => $q->where('date','>=',$start))
-                    ->when($end, fn($q) => $q->where('date','<=',$end))
-                    ->where('compte_debit_id',$c->id)->sum('montant');
-                $credit = JournalCompte::when($start, fn($q) => $q->where('date','>=',$start))
-                    ->when($end, fn($q) => $q->where('date','<=',$end))
-                    ->where('compte_credit_id',$c->id)->sum('montant');
-                $net = $debit - $credit;
-                $sum += $net;
 
-                // accumulate to assets or passifs depending on class
-                if (in_array((string)$cl->numero, $assets_classes)) {
-                    // assets: positive net increases assets, negative net increases liabilities
-                    if ($net >= 0) $assets_total += $net; else $passifs_total += abs($net);
-                } elseif (in_array((string)$cl->numero, $passifs_classes)) {
-                    // passifs: positive net (debit-credit) is unusual; treat credit excess as liabilities
-                    if ($net <= 0) $passifs_total += abs($net); else $assets_total += $net;
-                }
+        // prepare per-account lists for the bilan presentation
+        $assets_accounts = [];
+        $passifs_accounts = [];
+
+        $allComptes = Compte::with('classe')->orderBy('numero')->get();
+        foreach ($allComptes as $c) {
+            $debit = JournalCompte::when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->where('compte_debit_id',$c->id)->sum('montant');
+            $credit = JournalCompte::when($start, fn($q) => $q->where('date','>=',$start))
+                ->when($end, fn($q) => $q->where('date','<=',$end))
+                ->where('compte_credit_id',$c->id)->sum('montant');
+            $net = $debit - $credit;
+            // skip zero balances
+            if (abs($net) < 0.0001) {
+                // still accumulate class totals for completeness
+                $class_totals[$c->classe->numero] = ($class_totals[$c->classe->numero] ?? 0) + $net;
+                continue;
             }
-            $class_totals[$cl->numero] = $sum;
+            // decide side and value contribution
+            if (in_array((string)$c->classe->numero, $assets_classes)) {
+                if ($net >= 0) {
+                    $assets_accounts[] = ['compte'=>$c,'value'=>$net];
+                    $assets_total += $net;
+                } else {
+                    $passifs_accounts[] = ['compte'=>$c,'value'=>abs($net)];
+                    $passifs_total += abs($net);
+                }
+            } elseif (in_array((string)$c->classe->numero, $passifs_classes)) {
+                if ($net <= 0) {
+                    $passifs_accounts[] = ['compte'=>$c,'value'=>abs($net)];
+                    $passifs_total += abs($net);
+                } else {
+                    $assets_accounts[] = ['compte'=>$c,'value'=>$net];
+                    $assets_total += $net;
+                }
+            } else {
+                // other classes (like 6,7) will be handled separately
+                $class_totals[$c->classe->numero] = ($class_totals[$c->classe->numero] ?? 0) + $net;
+            }
         }
+
+        // Group by classe (first digit of compte.numero) and sort groups numerically
+        $assets_groups = [];
+        foreach ($assets_accounts as $a) {
+            $num = preg_replace('/\D/', '', (string)$a['compte']->numero);
+            $s = substr($num, 0, 1) ?: $num;
+            if (!isset($assets_groups[$s])) { $assets_groups[$s] = ['label'=>$s,'total'=>0,'comptes'=>[]]; }
+            $assets_groups[$s]['total'] += $a['value'];
+            $assets_groups[$s]['comptes'][] = $a;
+        }
+        ksort($assets_groups, SORT_NUMERIC);
+
+        $passifs_groups = [];
+        foreach ($passifs_accounts as $p) {
+            $num = preg_replace('/\D/', '', (string)$p['compte']->numero);
+            $s = substr($num, 0, 1) ?: $num;
+            if (!isset($passifs_groups[$s])) { $passifs_groups[$s] = ['label'=>$s,'total'=>0,'comptes'=>[]]; }
+            $passifs_groups[$s]['total'] += $p['value'];
+            $passifs_groups[$s]['comptes'][] = $p;
+        }
+        ksort($passifs_groups, SORT_NUMERIC);
 
         // compute resultat from compteResultat logic (classes 6 & 7)
         $charges = Compte::whereHas('classe', fn($q)=> $q->where('numero','6'))->get();
@@ -217,13 +258,9 @@ class JournalCompteController extends Controller
         }
         $resultat = $total_produits - $total_charges;
 
-        // add resultat to passifs_total (equity side)
-        if ($resultat >= 0) {
-            $passifs_total += $resultat;
-        } else {
-            $assets_total += abs($resultat);
-        }
+        // add resultat to passifs_total (inscrire le compte de résultat au passif)
+        $passifs_total += $resultat;
 
-        return view('journal_comptes.bilan', compact('class_totals','total_charges','total_produits','resultat','start','end','assets_total','passifs_total'));
+        return view('journal_comptes.bilan', compact('class_totals','total_charges','total_produits','resultat','start','end','assets_total','passifs_total','assets_accounts','passifs_accounts','assets_groups','passifs_groups'));
     }
 }
