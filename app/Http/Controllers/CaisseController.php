@@ -25,9 +25,27 @@ class CaisseController extends Controller
         if (empty($start)) { $start = Carbon::today()->toDateString(); }
         if (empty($end)) { $end = Carbon::today()->toDateString(); }
 
-        $comptes = Compte::orderBy('numero')->get();
+        // Only load 'caisse' accounts (class number 5) for the filter
+        $comptes = Compte::whereHas('classe', function($q){
+            $q->where('numero','5');
+        })->orderBy('numero')->get();
+
+        // comptes allowed to be debited on a sortie: classes 5 and 6 (charges & financiers)
+        $comptes_debit = Compte::whereHas('classe', function($q){
+            $q->whereIn('numero',['5','6']);
+        })->orderBy('numero')->get();
+
+        // comptes allowed to be credited on a sortie: class 5 only (caisses/finances)
+        $comptes_credit = Compte::whereHas('classe', function($q){
+            $q->where('numero','5');
+        })->orderBy('numero')->get();
 
         $query = JournalCompte::with(['compteDebit','compteCredit']);
+
+        // default to the connected user's caisse account when none selected
+        if (empty($compte_id)) {
+            $compte_id = auth()->user()->caisse_compte_id ?? null;
+        }
 
         if ($compte_id) {
             $query->where(function($sub) use ($compte_id){
@@ -48,6 +66,11 @@ class CaisseController extends Controller
         }
 
         $entries = $query->orderBy('date','desc')->orderBy('id','desc')->paginate(50)->appends($request->query());
+
+        $selectedCompte = null;
+        if ($compte_id) {
+            $selectedCompte = Compte::find($compte_id);
+        }
 
         // totals
         if ($compte_id) {
@@ -73,13 +96,14 @@ class CaisseController extends Controller
 
         $balance = $total_entrees - $total_sorties;
 
-        return view('caisse.index', compact('entries','comptes','compte_id','start','end','q','total_entrees','total_sorties','balance'));
+        return view('caisse.index', compact('entries','comptes','compte_id','start','end','q','total_entrees','total_sorties','balance','selectedCompte','comptes_debit','comptes_credit'));
     }
 
     public function storeSortie(Request $request)
     {
         $data = $request->validate([
             'compte_debit_id' => 'required|exists:comptes,id',
+            'compte_credit_id' => 'required|exists:comptes,id',
             'montant' => 'required|numeric|min:0.01',
             'libelle' => 'required|string',
             'date' => 'nullable|date',
@@ -87,10 +111,16 @@ class CaisseController extends Controller
             'reference' => 'nullable|string',
         ]);
 
-        $user = auth()->user();
-        $caisseId = $user->caisse_compte_id;
-        if (!$caisseId) {
-            return redirect()->back()->with('error','Votre utilisateur n\'a pas de compte caisse configuré.');
+        // verify selected comptes have allowed classes
+        $compteDebit = Compte::with('classe')->find($data['compte_debit_id']);
+        $compteCredit = Compte::with('classe')->find($data['compte_credit_id']);
+
+        if (!$compteDebit || !in_array($compteDebit->classe->numero, ['5','6'])) {
+            return redirect()->back()->with('error','Le compte à débiter doit être de classe 5 ou 6.');
+        }
+
+        if (!$compteCredit || $compteCredit->classe->numero !== '5') {
+            return redirect()->back()->with('error','Le compte à créditer doit être un compte de caisse (classe 5).');
         }
 
         $date = $data['date'] ?? Carbon::today()->toDateString();
@@ -101,7 +131,7 @@ class CaisseController extends Controller
                 'montant' => $data['montant'],
                 'date' => $date,
                 'compte_debit_id' => $data['compte_debit_id'],
-                'compte_credit_id' => $caisseId,
+                'compte_credit_id' => $data['compte_credit_id'],
                 'type' => $data['type'] ?? 'caisses',
                 'reference' => $data['reference'] ?? null,
             ]);

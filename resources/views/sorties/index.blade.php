@@ -46,7 +46,6 @@
   <thead>
     <tr>
       <th>#</th>
-      <th>Numero</th>
       <th>Plaque</th>
       <th>Compagnie</th>
       <th class="d-none d-md-table-cell">Marque</th>
@@ -57,15 +56,13 @@
       <th>Date Sortie</th>
       <th>Utilisateur</th>
       <th>Facturation</th>
-      <th>Depuis facturation</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     @foreach($entrees as $e)
-    <tr data-entree-id="{{ $e->id }}" class="{{ $e->date_sortie ? 'table-danger' : '' }}">
+    <tr>
       <td>{{ $entrees->firstItem() + $loop->index }}</td>
-      <td>{{ $e->numero_formatted ?? $e->numero }}</td>
       <td>{{ $e->vehicule?->plaque }}</td>
       <td>{{ $e->vehicule?->compagnie ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->marque ?? '-' }}</td>
@@ -73,45 +70,36 @@
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->essieux ?? '-' }}</td>
       <td>{{ $e->client?->nom }}</td>
       <td>{{ $e->date_entree ? \Carbon\Carbon::parse($e->date_entree)->format('Y-m-d H:i') : '' }}</td>
-      <td class="td-date-sortie">{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
+      <td>{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
       <td>{{ $e->user?->name }}</td>
       <td>
         @if($e->facturation)
-          #{{ $e->facturation->numero_formatted ?? $e->facturation->numero ?? $e->facturation->id }} - {{ $e->categorie?->nom ?? ($e->facturation->categorie?->nom ?? 'N/C') }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
+          #{{ $e->facturation->id }} - {{ $e->categorie?->nom ?? ($e->facturation->categorie?->nom ?? 'N/C') }} - D: {{ $e->facturation->duree ?? $e->durationInDays() ?? 'N/A' }}
         @else
           <span class="text-muted">Aucune</span>
         @endif
       </td>
-      <td class="td-since-facturation">
-        @if($e->facturation && $e->facturation->updated_at)
-          @php
-            $u = \Carbon\Carbon::parse($e->facturation->updated_at);
-            $diff = $u->diff(\Carbon\Carbon::now());
-          @endphp
-          {{ $diff->d }}j {{ $diff->h }}h {{ $diff->i }}m
-        @else
-          -
-        @endif
-      </td>
       <td>
         <a href="{{ route('sorties.show', $e) }}" class="btn btn-sm btn-outline-secondary me-1">Voir</a>
+        @php
+          $fact = $e->facturation;
+          $canExit = false;
+          if ($fact) {
+            $canExit = (($fact->montant_paye ?? 0) >= ($fact->montant_total ?? 0));
+          }
+        @endphp
+        @if($e->date_sortie)
+          <button class="btn btn-sm btn-light" disabled>Déjà sorti</button>
+        @else
+          <button class="btn btn-sm {{ $canExit ? 'btn-danger btn-exit' : 'btn-secondary' }}" data-id="{{ $e->id }}" {{ $canExit ? '' : 'disabled' }}>Sortie</button>
+        @endif
       </td>
     </tr>
     @endforeach
   </tbody>
 </table>
 
-<div class="small-pagination">{{ $entrees->links() }}</div>
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  const container = document.querySelector('.small-pagination');
-  if (!container) return;
-  container.querySelectorAll('svg, .bi').forEach(el => el.remove());
-});
-</script>
-@endpush
+{{ $entrees->links() }}
 
 <!-- Modal container for view/edit -->
 <div class="modal fade" id="sortieModal" tabindex="-1" aria-hidden="true">
@@ -146,7 +134,9 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     }
 
-    // Le bouton 'Sortie' a été supprimé ; ouverture/confirmation se fera depuis "Voir".
+    document.querySelectorAll('.btn-exit').forEach(btn => {
+      btn.addEventListener('click', function(){ loadAndShow(this.dataset.id); });
+    });
     // delegate submit for confirmSortieForm inside loaded modal content
     document.getElementById('sortieModalContent').addEventListener('submit', function(e){
       const form = e.target;
@@ -175,43 +165,6 @@ document.addEventListener('DOMContentLoaded', function(){
         }).catch(err => {
           console.error('Sortie confirm error', err);
           alert('Erreur réseau lors de la confirmation');
-        });
-      }
-      if (form && form.id === 'confirmApurerForm') {
-        e.preventDefault();
-        const url = form.action;
-        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        fetch(url, {
-          method: 'POST',
-          headers: {
-            'X-CSRF-TOKEN': token || '',
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({})
-        }).then(r => r.json()).then(data => {
-          if (data && data.success) {
-            // close modal
-            const outer = document.getElementById('sortieModal');
-            bootstrap.Modal.getInstance(outer)?.hide();
-            try {
-              const row = document.querySelector('tr[data-entree-id="' + data.entree_id + '"]');
-              if (row) {
-                const dateCell = row.querySelector('.td-date-sortie');
-                if (dateCell) dateCell.textContent = data.date_sortie || '-';
-                const sinceCell = row.querySelector('.td-since-facturation');
-                if (sinceCell && data.sinceBilled) {
-                  sinceCell.textContent = (data.sinceBilled.days||0) + 'j ' + (data.sinceBilled.hours||0) + 'h ' + (data.sinceBilled.minutes||0) + 'm';
-                }
-                row.classList.add('table-danger');
-              }
-            } catch(err) { console.error('Update row error', err); }
-          } else {
-            alert(data?.message || 'Erreur lors de l\'apurement');
-          }
-        }).catch(err => {
-          console.error('Apurer error', err);
-          alert('Erreur réseau lors de l\'apurement');
         });
       }
     });

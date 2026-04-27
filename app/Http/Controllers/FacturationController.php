@@ -345,8 +345,19 @@ class FacturationController extends Controller
             }
 
             if ($clientCompte && $produitCompte) {
+                $num = $fact->numero_formatted ?? $fact->numero ?? $fact->id;
+                $plaque = $fact->entree?->vehicule?->plaque ?? null;
+                $clientName = $fact->entree?->client?->nom ?? null;
+                $userName = $fact->user?->name ?? auth()->user()?->name ?? null;
+                $parts = [];
+                $parts[] = 'Facturation #'.$num;
+                if ($plaque) $parts[] = 'plaque '.$plaque;
+                if ($clientName) $parts[] = 'de '.$clientName;
+                if ($userName) $parts[] = 'par '.$userName;
+                $libelle = implode(', ', $parts);
+
                 JournalCompte::create([
-                    'libelle' => 'Facture #'.$fact->id,
+                    'libelle' => $libelle,
                     'montant' => $fact->montant_total,
                     'date' => Carbon::now()->toDateString(),
                     'compte_debit_id' => $clientCompte->id,
@@ -358,6 +369,32 @@ class FacturationController extends Controller
         } catch(\Exception $e) {
             // don't break user flow if accounting fails
             \Log::error('Accounting entry failed for facture '.$fact->id.': '.$e->getMessage());
+        }
+
+        // If the facture was paid at creation, also record the payment in the journal (debit caisse, credit client)
+        if (!empty($fact->montant_paye) && $fact->montant_paye > 0) {
+            try {
+                $clientCompte = Compte::where('numero','411000')->first();
+                $userCaisseId = auth()->user()->caisse_compte_id ?? null;
+                if ($clientCompte && $userCaisseId) {
+                    $num = $fact->numero_formatted ?? $fact->numero ?? $fact->id;
+                    $dateFact = $fact->created_at ? \Carbon\Carbon::parse($fact->created_at)->format('Y-m-d') : null;
+                    $userName = $fact->user?->name ?? auth()->user()?->name ?? null;
+                    $lib = 'Règlement de la facture #'.$num.($dateFact ? ' du '.$dateFact : '').($userName ? ', par '.$userName : '');
+
+                    JournalCompte::create([
+                        'libelle' => $lib,
+                        'montant' => $fact->montant_paye,
+                        'date' => $fact->date_paiement ? \Carbon\Carbon::parse($fact->date_paiement)->toDateString() : Carbon::now()->toDateString(),
+                        'compte_debit_id' => $userCaisseId,
+                        'compte_credit_id' => $clientCompte->id,
+                        'type' => 'caisses',
+                        'reference' => $fact->id,
+                    ]);
+                }
+            } catch(\Exception $e) {
+                \Log::error('Accounting payment entry failed for facture '.$fact->id.': '.$e->getMessage());
+            }
         }
 
         return redirect()->route('facturations.show', $fact->id)->with('success','Facturation créée');

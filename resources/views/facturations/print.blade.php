@@ -5,6 +5,9 @@
   <h4 style="text-align:center">{{ $entreprise->nom ?? 'Entreprise' }}</h4>
   <p style="text-align:center">{{ $entreprise->slogan ?? '' }}</p>
 
+  <div style="text-align:left;margin-bottom:6px;">
+    <a href="{{ route('facturations.index') }}" class="btn btn-secondary btn-sm">← Retour</a>
+  </div>
   <div style="text-align:center;margin-top:8px;">
     <div style="font-weight:700">Facture N° {{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</div>
     <div style="font-size:0.95em">{{ $facturation->created_at ? \Carbon\Carbon::parse($facturation->created_at)->format('Y-m-d H:i') : '' }}</div>

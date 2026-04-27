@@ -18,9 +18,8 @@
   </div>
   <div class="col-md-3">
     <select name="compte_id" class="form-control">
-      <option value="">-- Tous les comptes --</option>
       @foreach($comptes as $c)
-        <option value="{{ $c->id }}" {{ (string)($compte_id ?? '') === (string)$c->id ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>
+        <option value="{{ $c->id }}" {{ ((string)($compte_id ?? '') === (string)$c->id) ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>
       @endforeach
     </select>
   </div>
@@ -45,8 +44,7 @@
     <tr>
       <th>Date</th>
       <th>Libellé</th>
-      <th>Compte Débit</th>
-      <th>Compte Crédit</th>
+      <th>Compte</th>
       <th class="text-end">Entrées</th>
       <th class="text-end">Sorties</th>
     </tr>
@@ -56,8 +54,19 @@
       <tr>
         <td>{{ $e->date }}</td>
         <td>{{ $e->libelle }}</td>
-        <td>{{ $e->compteDebit? $e->compteDebit->numero . ' - ' . $e->compteDebit->nom : '' }}</td>
-        <td>{{ $e->compteCredit? $e->compteCredit->numero . ' - ' . $e->compteCredit->nom : '' }}</td>
+        @php
+          // determine counterpart account to display
+          $counter = null;
+          if(isset($compte_id) && $compte_id && $e->compte_debit_id == $compte_id) {
+            $counter = $e->compteCredit;
+          } elseif(isset($compte_id) && $compte_id && $e->compte_credit_id == $compte_id) {
+            $counter = $e->compteDebit;
+          } else {
+            // fallback show credit if available
+            $counter = $e->compteCredit ?? $e->compteDebit ?? null;
+          }
+        @endphp
+        <td>{{ $counter?->numero }}{{ $counter?->nom ? ' - '.$counter->nom : '' }}</td>
         @if($compte_id)
           <td class="text-end">@if($e->compte_debit_id == $compte_id) {{ number_format($e->montant,2,',',' ') }} @endif</td>
           <td class="text-end">@if($e->compte_credit_id == $compte_id) {{ number_format($e->montant,2,',',' ') }} @endif</td>
@@ -88,9 +97,19 @@
         <div class="modal-body">
           <div class="mb-3">
             <label>Compte à débiter</label>
-            <select name="compte_debit_id" class="form-control">
-              @foreach($comptes as $c)
-                <option value="{{ $c->id }}">{{ $c->numero }} - {{ $c->nom }}</option>
+            <select name="compte_debit_id" class="form-control" required>
+              <option value="">-- Choisir un compte à débiter --</option>
+              @foreach($comptes_debit as $c)
+                <option value="{{ $c->id }}" {{ old('compte_debit_id') == $c->id ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>
+              @endforeach
+            </select>
+          </div>
+          <div class="mb-3">
+            <label>Compte à créditer</label>
+            <select name="compte_credit_id" class="form-control" required>
+              <option value="">-- Choisir un compte à créditer (classe 5) --</option>
+              @foreach($comptes_credit as $c)
+                <option value="{{ $c->id }}" {{ (old('compte_credit_id') == $c->id) || (auth()->user()->caisse_compte_id == $c->id && !old('compte_credit_id')) ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>
               @endforeach
             </select>
           </div>

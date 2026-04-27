@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+<a href="{{ route('facturations.index') }}" class="btn btn-secondary mb-2">← Retour</a>
 <h3>Facturation #{{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</h3>
 <div class="card p-3">
   <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>

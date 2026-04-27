@@ -74,8 +74,13 @@ class PaiementController extends Controller
             $clientCompte = Compte::where('numero','411000')->first();
             $userCaisseId = auth()->user()->caisse_compte_id;
             if ($clientCompte && $userCaisseId) {
+                $num = $fact->numero_formatted ?? $fact->numero ?? $fact->id;
+                $dateFact = $fact->created_at ? \Carbon\Carbon::parse($fact->created_at)->format('Y-m-d') : null;
+                $userName = auth()->user()?->name ?? ($fact->user?->name ?? null);
+                $lib = 'Règlement de la facture #'.$num.($dateFact ? ' du '.$dateFact : '').($userName ? ', par '.$userName : '');
+
                 JournalCompte::create([
-                    'libelle' => 'Paiement facture #'.$fact->id,
+                    'libelle' => $lib,
                     'montant' => $paiement->montant,
                     'date' => $paiement->date_paiement->toDateString(),
                     'compte_debit_id' => $userCaisseId,
