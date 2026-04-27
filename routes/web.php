@@ -78,5 +78,11 @@ Route::middleware(['auth'])->group(function () {
     // classes & comptes resources
     Route::resource('classes', \App\Http\Controllers\ClasseController::class);
     Route::resource('comptes', \App\Http\Controllers\CompteController::class);
+    // Grand livre and accounting reports (must come before resource route to avoid collision)
+    Route::get('journal_comptes/grand-livre', [\App\Http\Controllers\JournalCompteController::class,'grandLivreIndex'])->name('journal_comptes.grand_index');
+    Route::get('journal_comptes/grand-livre/{compte}', [\App\Http\Controllers\JournalCompteController::class,'grandLivreShow'])->name('journal_comptes.grand_show');
+    Route::get('journal_comptes/balances', [\App\Http\Controllers\JournalCompteController::class,'balances'])->name('journal_comptes.balances');
+    Route::get('journal_comptes/compte-resultat', [\App\Http\Controllers\JournalCompteController::class,'compteResultat'])->name('journal_comptes.compte_resultat');
+    Route::get('journal_comptes/bilan', [\App\Http\Controllers\JournalCompteController::class,'bilan'])->name('journal_comptes.bilan');
     Route::resource('journal_comptes', \App\Http\Controllers\JournalCompteController::class)->only(['index','show']);
 });

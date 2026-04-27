@@ -65,6 +65,10 @@
                 <div class="collapse" id="comptaMenu">
                   <ul class="nav flex-column ms-2">
                     <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.index') ?? '#' }}">Journal</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.grand_index') }}">Grand Livre</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.balances') }}">Balances</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.compte_resultat') }}">Compte de Résultat</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.bilan') }}">Bilan</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('comptes.index') }}">Comptes</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ route('classes.index') }}">Classes</a></li>
                   </ul>
