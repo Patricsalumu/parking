@@ -84,5 +84,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('journal_comptes/balances', [\App\Http\Controllers\JournalCompteController::class,'balances'])->name('journal_comptes.balances');
     Route::get('journal_comptes/compte-resultat', [\App\Http\Controllers\JournalCompteController::class,'compteResultat'])->name('journal_comptes.compte_resultat');
     Route::get('journal_comptes/bilan', [\App\Http\Controllers\JournalCompteController::class,'bilan'])->name('journal_comptes.bilan');
+    Route::post('journal_comptes/{journal_compte}/annuler', [\App\Http\Controllers\JournalCompteController::class,'annuler'])->name('journal_comptes.annuler');
+    Route::get('journal_comptes/search-comptes', [\App\Http\Controllers\JournalCompteController::class,'searchComptes'])->name('journal_comptes.search_comptes');
+    Route::get('journal_comptes/create', [\App\Http\Controllers\JournalCompteController::class,'create'])->name('journal_comptes.create');
+    Route::post('journal_comptes', [\App\Http\Controllers\JournalCompteController::class,'store'])->name('journal_comptes.store');
     Route::resource('journal_comptes', \App\Http\Controllers\JournalCompteController::class)->only(['index','show']);
 });

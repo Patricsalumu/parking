@@ -17,8 +17,31 @@ class JournalCompteController extends Controller
 
     public function index()
     {
-        $rows = JournalCompte::with('compteDebit','compteCredit')->latest()->paginate(20);
-        return view('journal_comptes.index', compact('rows'));
+        $q = request()->query('q');
+        // default to today's date when not provided so the index shows today's entries
+        $start = request()->query('start_date') ?? Carbon::today()->toDateString();
+        $end = request()->query('end_date') ?? Carbon::today()->toDateString();
+        $query = JournalCompte::with('compteDebit','compteCredit')->orderBy('date','desc');
+        if (!empty($q)) {
+            $query->where(function($sub) use ($q) {
+                $sub->where('libelle','like','%'.$q.'%')
+                    ->orWhere('reference','like','%'.$q.'%');
+            })->orWhereHas('compteDebit', function($c) use ($q) {
+                $c->where('numero','like','%'.$q.'%')->orWhere('nom','like','%'.$q.'%');
+            })->orWhereHas('compteCredit', function($c) use ($q) {
+                $c->where('numero','like','%'.$q.'%')->orWhere('nom','like','%'.$q.'%');
+            });
+        }
+
+        if (!empty($start)) {
+            $query->where('date', '>=', $start);
+        }
+        if (!empty($end)) {
+            $query->where('date', '<=', $end);
+        }
+
+        $rows = $query->latest('id')->paginate(20)->appends(request()->query());
+        return view('journal_comptes.index', compact('rows','q','start','end'));
     }
 
     public function show(JournalCompte $journal_compte)
@@ -262,5 +285,92 @@ class JournalCompteController extends Controller
         $passifs_total += $resultat;
 
         return view('journal_comptes.bilan', compact('class_totals','total_charges','total_produits','resultat','start','end','assets_total','passifs_total','assets_accounts','passifs_accounts','assets_groups','passifs_groups'));
+    }
+
+    // Create a reversing journal entry (annuler)
+    public function annuler(Request $request, JournalCompte $journal_compte)
+    {
+        // prevent annulation of an annulation or duplicate annulation
+        if ($journal_compte->type === 'annulation') {
+            return redirect()->back()->with('error', 'Impossible d\'annuler une écriture d\'annulation.');
+        }
+
+        $existing = JournalCompte::where('reference', 'annule_' . $journal_compte->id)->first();
+        if ($existing) {
+            return redirect()->back()->with('error', 'Une écriture d\'annulation existe déjà (#' . $existing->id . ').');
+        }
+
+        // create inverse entry: swap debit/credit
+        $inv = JournalCompte::create([
+            'libelle' => 'Annulation de #' . $journal_compte->id . ' - ' . $journal_compte->libelle,
+            'montant' => $journal_compte->montant,
+            'date' => Carbon::today()->toDateString(),
+            'compte_debit_id' => $journal_compte->compte_credit_id,
+            'compte_credit_id' => $journal_compte->compte_debit_id,
+            'type' => 'annulation',
+            'reference' => 'annule_' . $journal_compte->id,
+        ]);
+
+        return redirect()->back()->with('success', "Annulation créée (#{$inv->id}).");
+    }
+
+    // AJAX search comptes by numero or nom
+    public function searchComptes(Request $request)
+    {
+        $q = $request->query('q');
+        if (!$q) return response()->json(['results'=>[]]);
+        $q = trim($q);
+        $rows = Compte::where('numero','like','%'.$q.'%')
+            ->orWhere('nom','like','%'.$q.'%')
+            ->orderBy('numero')
+            ->limit(20)
+            ->get();
+        $results = $rows->map(function($c){ return ['id'=>$c->id,'numero'=>$c->numero,'nom'=>$c->nom]; });
+        return response()->json(['results'=>$results]);
+    }
+
+    // Store a new manual journal entry
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'libelle' => 'required|string',
+            'compte_debit_id' => 'required|integer|exists:comptes,id',
+            'compte_credit_id' => 'required|integer|exists:comptes,id',
+            'montant' => 'required|numeric|min:0.01',
+            'type' => 'nullable|string',
+        ], [
+            'compte_debit_id.required' => 'Veuillez sélectionner un compte de débit depuis la liste.',
+            'compte_debit_id.integer' => 'Compte de débit invalide.',
+            'compte_debit_id.exists' => 'Le compte de débit sélectionné est introuvable.',
+            'compte_credit_id.required' => 'Veuillez sélectionner un compte de crédit depuis la liste.',
+            'compte_credit_id.integer' => 'Compte de crédit invalide.',
+            'compte_credit_id.exists' => 'Le compte de crédit sélectionné est introuvable.',
+        ]);
+
+        // refuse if same account used for debit and credit
+        if (isset($data['compte_debit_id'], $data['compte_credit_id']) && $data['compte_debit_id'] == $data['compte_credit_id']) {
+            return redirect()->back()->withInput()->with('error', 'Le compte de débit et le compte de crédit doivent être différents.');
+        }
+
+            // read optional type safely (may be absent)
+            $type = $request->input('type');
+
+        $jc = JournalCompte::create([
+            'libelle' => $data['libelle'],
+            'compte_debit_id' => $data['compte_debit_id'],
+            'compte_credit_id' => $data['compte_credit_id'],
+            'montant' => $data['montant'],
+            'date' => Carbon::today()->toDateString(),
+                'type' => $type ?: 'manual',
+                'reference' => $type ? ($type . '_manual') : 'manual',
+        ]);
+
+        return redirect()->back()->with('success', 'Écriture créée (#'.$jc->id.').');
+    }
+
+    // Show create page for manual journal entry
+    public function create()
+    {
+        return view('journal_comptes.create');
     }
 }
