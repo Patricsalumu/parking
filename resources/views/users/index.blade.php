@@ -12,7 +12,7 @@
   </div>
 </div>
 <table class="table table-striped">
-  <thead><tr><th>ID</th><th>Nom</th><th>Email</th><th>Rôle</th><th>Actions</th></tr></thead>
+  <thead><tr><th>ID</th><th>Nom</th><th>Email</th><th>Rôle</th><th>Compte caisse</th><th>Actions</th></tr></thead>
   <tbody>
     @foreach($users as $u)
       <tr>
@@ -20,6 +20,7 @@
         <td>{{ $u->name }}</td>
         <td>{{ $u->email }}</td>
         <td>{{ $u->role }}</td>
+        <td>{{ $u->caisseCompte?->numero }} {{ $u->caisseCompte?->nom ? '- ' . $u->caisseCompte->nom : '' }}</td>
         <td>
           <a href="{{ route('users.edit', $u) }}" class="btn btn-sm btn-warning">Modifier</a>
           <form action="{{ route('users.destroy', $u) }}" method="POST" style="display:inline">@csrf @method('DELETE')<button class="btn btn-sm btn-danger">Supprimer</button></form>

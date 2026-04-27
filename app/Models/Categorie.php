@@ -9,10 +9,15 @@ class Categorie extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['nom','prix_par_24h'];
+    protected $fillable = ['nom','prix_par_24h','compte_produit_id'];
 
     public function facturations()
     {
         return $this->hasMany(Facturation::class);
+    }
+
+    public function compteProduit()
+    {
+        return $this->belongsTo(Compte::class, 'compte_produit_id');
     }
 }

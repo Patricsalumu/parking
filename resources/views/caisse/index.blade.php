@@ -79,6 +79,7 @@
   <div class="modal-dialog">
     <form method="POST" action="{{ route('caisse.sortie') }}">
       @csrf
+      <input type="hidden" name="type" value="caisses">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">Enregistrer une sortie</h5>

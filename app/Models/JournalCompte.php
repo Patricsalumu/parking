@@ -9,7 +9,7 @@ class JournalCompte extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['libelle','montant','date','compte_debit_id','compte_credit_id'];
+    protected $fillable = ['libelle','montant','date','compte_debit_id','compte_credit_id','type','reference'];
 
     public function compteDebit()
     {

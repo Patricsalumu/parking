@@ -80,6 +80,8 @@ class PaiementController extends Controller
                     'date' => $paiement->date_paiement->toDateString(),
                     'compte_debit_id' => $userCaisseId,
                     'compte_credit_id' => $clientCompte->id,
+                    'type' => 'caisses',
+                    'reference' => $fact->id,
                 ]);
             }
         } catch(\Exception $e) {

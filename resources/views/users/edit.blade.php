@@ -42,7 +42,7 @@
     <label class="form-check-label" for="blocked">Bloqué</label>
   </div>
   <div class="mb-3"><label>Compte caisse (optionnel)</label>
-    <select name="caisse_compte_id" class="form-control">
+      <select name="caisse_compte_id" class="form-control" required>
       <option value="">-- Aucun --</option>
       @foreach($comptes as $c)
         <option value="{{ $c->id }}" {{ (old('caisse_compte_id', $user->caisse_compte_id) == $c->id) ? 'selected' : '' }}>{{ $c->numero }} - {{ $c->nom }}</option>

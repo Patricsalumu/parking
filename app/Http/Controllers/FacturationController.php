@@ -314,14 +314,36 @@ class FacturationController extends Controller
             $fact->montant_paye = $paye;
             $fact->date_paiement = $paye > 0 ? Carbon::now() : null;
 
-            // persist facture
-            $fact->save();
+                // ensure client account (411000) exists before persisting
+                $clientCompte = Compte::where('numero','411000')->first();
+                if (!$clientCompte) {
+                    return back()->with('error','Compte client 411000 introuvable. Impossible de créer la facturation.');
+                }
+
+                // ensure category has produit compte
+                $effectiveCat = $cat ?? ($fact->categorie ?? null);
+                if (!$effectiveCat || !$effectiveCat->compte_produit_id) {
+                    return back()->with('error','La catégorie sélectionnée doit avoir un compte produit associé. Veuillez configurer le compte produit de la catégorie.');
+                }
+
+                $fact->save();
         }
 
         // Create basic accounting journal entry: debit client (411000), credit product (parking 701000)
         try {
+            // clientCompte was checked earlier when saving
             $clientCompte = Compte::where('numero','411000')->first();
-            $produitCompte = Compte::where('numero','701000')->first();
+            // prefer category's associated produit compte
+            $produitCompte = null;
+            $catForFact = $fact->categorie ?? ($fact->entree?->categorie ?? null);
+            if ($catForFact && $catForFact->compte_produit_id) {
+                $produitCompte = Compte::find($catForFact->compte_produit_id);
+            }
+            // fallback to legacy product account if necessary
+            if (!$produitCompte) {
+                $produitCompte = Compte::where('numero','701000')->first();
+            }
+
             if ($clientCompte && $produitCompte) {
                 JournalCompte::create([
                     'libelle' => 'Facture #'.$fact->id,
@@ -329,6 +351,8 @@ class FacturationController extends Controller
                     'date' => Carbon::now()->toDateString(),
                     'compte_debit_id' => $clientCompte->id,
                     'compte_credit_id' => $produitCompte->id,
+                    'type' => 'ventes',
+                    'reference' => $fact->id,
                 ]);
             }
         } catch(\Exception $e) {

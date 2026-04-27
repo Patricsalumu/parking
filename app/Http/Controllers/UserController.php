@@ -27,7 +27,7 @@ class UserController extends Controller
             });
         }
 
-        $users = $query->orderBy('name', 'asc')->paginate(20);
+        $users = $query->with('caisseCompte')->orderBy('name', 'asc')->paginate(20);
         $users->appends($request->only('q'));
 
         return view('users.index', compact('users'));
@@ -47,7 +47,7 @@ class UserController extends Controller
             'password' => 'required|confirmed|min:6',
             'role' => 'required|string',
             'blocked' => 'sometimes|nullable|boolean',
-            'caisse_compte_id' => 'nullable|exists:comptes,id',
+            'caisse_compte_id' => 'required|exists:comptes,id',
         ]);
         $data['password'] = Hash::make($data['password']);
         $data['blocked'] = $request->has('blocked') ? 1 : 0;
@@ -80,7 +80,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,'.$user->id,
             'role' => 'required|string',
             'blocked' => 'sometimes|nullable|boolean',
-            'caisse_compte_id' => 'nullable|exists:comptes,id',
+            'caisse_compte_id' => 'required|exists:comptes,id',
         ]);
         if ($request->filled('password')) {
             $request->validate(['password' => 'confirmed|min:6']);

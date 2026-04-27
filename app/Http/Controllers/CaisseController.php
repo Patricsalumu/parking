@@ -83,6 +83,8 @@ class CaisseController extends Controller
             'montant' => 'required|numeric|min:0.01',
             'libelle' => 'required|string',
             'date' => 'nullable|date',
+            'type' => 'nullable|in:Banques,caisses,ventes,achat,OD',
+            'reference' => 'nullable|string',
         ]);
 
         $user = auth()->user();
@@ -100,6 +102,8 @@ class CaisseController extends Controller
                 'date' => $date,
                 'compte_debit_id' => $data['compte_debit_id'],
                 'compte_credit_id' => $caisseId,
+                'type' => $data['type'] ?? 'caisses',
+                'reference' => $data['reference'] ?? null,
             ]);
         } catch (\Exception $e) {
             \Log::error('Failed to create sortie journal entry: '.$e->getMessage());

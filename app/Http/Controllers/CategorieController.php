@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Categorie;
+use App\Models\Compte;
 
 class CategorieController extends Controller
 {
@@ -15,13 +16,14 @@ class CategorieController extends Controller
 
     public function index()
     {
-        $categories = Categorie::latest()->paginate(20);
+        $categories = Categorie::with('compteProduit')->latest()->paginate(20);
         return view('categories.index', compact('categories'));
     }
 
     public function create()
     {
-        return view('categories.create');
+        $comptes = Compte::orderBy('numero')->get();
+        return view('categories.create', compact('comptes'));
     }
 
     public function store(Request $request)
@@ -29,6 +31,7 @@ class CategorieController extends Controller
         $data = $request->validate([
             'nom' => 'required|string',
             'prix_par_24h' => 'required|numeric',
+            'compte_produit_id' => 'required|exists:comptes,id',
         ]);
         Categorie::create($data);
         return redirect()->route('categories.index')->with('success','Categorie créée');
@@ -36,7 +39,8 @@ class CategorieController extends Controller
 
     public function edit(Categorie $category)
     {
-        return view('categories.edit', ['category' => $category]);
+        $comptes = Compte::orderBy('numero')->get();
+        return view('categories.edit', ['category' => $category, 'comptes' => $comptes]);
     }
 
     public function update(Request $request, Categorie $category)
@@ -44,6 +48,7 @@ class CategorieController extends Controller
         $data = $request->validate([
             'nom' => 'required|string',
             'prix_par_24h' => 'required|numeric',
+            'compte_produit_id' => 'required|exists:comptes,id',
         ]);
         $category->update($data);
         return redirect()->route('categories.index')->with('success','Categorie mise à jour');

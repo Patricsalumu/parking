@@ -43,7 +43,15 @@ class ComptabiliteSeeder extends Seeder
 
         // create a default sales journal if not exists
         if (!JournalCompte::where('libelle','VENTES')->exists()) {
-            JournalCompte::create(['libelle'=>'VENTES','montant'=>0,'date'=>now(),'compte_debit_id'=>$clientCompte->id,'compte_credit_id'=>$produitCompte->id]);
+            JournalCompte::create([
+                'libelle'=>'VENTES',
+                'montant'=>0,
+                'date'=>now(),
+                'compte_debit_id'=>$clientCompte->id,
+                'compte_credit_id'=>$produitCompte->id,
+                'type' => 'ventes',
+                'reference' => null,
+            ]);
         }
     }
 }
