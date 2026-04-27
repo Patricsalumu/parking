@@ -42,6 +42,8 @@
         .dashboard-actions .btn { white-space: nowrap; }
         .dashboard-actions { flex-wrap: nowrap; }
       }
+      /* Ensure tables can scroll horizontally on small screens */
+      .table-responsive { -webkit-overflow-scrolling: touch; overflow-x: auto; }
     </style>
   </head>
   <body>
@@ -161,6 +163,23 @@
           });
         }
         if(hideBtn){ hideBtn.addEventListener('click', function(e){ e.preventDefault(); setCollapsed(true); }); }
+      });
+    </script>
+    <script>
+      // Wrap all tables inside <main> with .table-responsive to enable horizontal scrolling on small screens
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          const main = document.querySelector('main');
+          if(!main) return;
+          const tables = Array.from(main.querySelectorAll('table'));
+          tables.forEach(tbl => {
+            if(tbl.closest('.table-responsive')) return;
+            const wrapper = document.createElement('div');
+            wrapper.className = 'table-responsive';
+            tbl.parentNode.insertBefore(wrapper, tbl);
+            wrapper.appendChild(tbl);
+          });
+        }catch(e){ console.error('table-responsive wrapper error', e); }
       });
     </script>
     <script>
