@@ -1,16 +1,19 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between mb-3">
-  <h3>Véhicules</h3>
-  <div class="d-flex align-items-center">
-    <form method="GET" class="d-flex me-2">
-      <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm" placeholder="Rechercher plaque / client">
-      <button class="btn btn-outline-secondary btn-sm ms-2">Rechercher</button>
-    </form>
-    <a href="{{ route('vehicules.export.csv') }}?{{ http_build_query(request()->only('q')) }}" class="btn btn-outline-success btn-sm me-2">Export CSV</a>
-    <a href="{{ route('vehicules.export.pdf') }}?{{ http_build_query(request()->only('q')) }}" class="btn btn-outline-primary btn-sm me-2">Export PDF</a>
-    <a href="{{ route('vehicules.create') }}" class="btn btn-primary">Nouveau Véhicule</a>
+<div class="mb-3">
+  <div class="row g-2 align-items-center">
+    <div class="col-12 col-md-8">
+      <form method="GET" class="d-flex w-100">
+        <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm me-2" placeholder="Rechercher plaque / client">
+        <button class="btn btn-outline-secondary btn-sm" aria-label="Rechercher"><i class="bi bi-search" aria-hidden="true"></i></button>
+      </form>
+    </div>
+    <div class="col-12 col-md-4 text-md-end">
+      <a href="{{ route('vehicules.export.csv') }}?{{ http_build_query(request()->only('q')) }}" class="btn btn-outline-success btn-sm me-2">Export CSV</a>
+      <a href="{{ route('vehicules.export.pdf') }}?{{ http_build_query(request()->only('q')) }}" class="btn btn-outline-primary btn-sm me-2">Export PDF</a>
+      <a href="{{ route('vehicules.create') }}" class="btn btn-primary btn-sm">Nouveau</a>
+    </div>
   </div>
 </div>
 <table class="table table-striped">

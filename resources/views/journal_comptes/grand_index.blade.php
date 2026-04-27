@@ -13,7 +13,7 @@
     <input type="date" name="end_date" class="form-control" value="{{ $end ?? '' }}">
   </div>
   <div class="col-md-2">
-    <button class="btn btn-primary">Filtrer</button>
+    <button class="btn btn-primary" aria-label="Filtrer"><i class="bi bi-funnel" aria-hidden="true"></i></button>
   </div>
 </form>
 

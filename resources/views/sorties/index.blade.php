@@ -2,13 +2,21 @@
 
 @section('content')
 <div class="mb-3"><h3>Sorties (Véhicules à l'intérieur)</h3></div>
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <form method="GET" class="d-flex">
-    <input type="text" name="q" value="{{ request('q') }}" class="form-control form-control-sm me-2" placeholder="Plaque, client, utilisateur">
-    <input type="date" name="start_date" value="{{ $start ?? request('start_date') }}" class="form-control form-control-sm me-2">
-    <input type="date" name="end_date" value="{{ $end ?? request('end_date') }}" class="form-control form-control-sm me-2">
-    <button class="btn btn-outline-secondary btn-sm">Filtrer</button>
-    <a href="{{ route('sorties.index') }}" class="btn btn-light btn-sm ms-2">Clear</a>
+<div class="mb-3">
+  <form method="GET" class="row g-2 align-items-center">
+    <div class="col-12 col-md-4">
+      <input type="text" name="q" value="{{ request('q') }}" class="form-control form-control-sm" placeholder="Plaque, client, utilisateur">
+    </div>
+    <div class="col-6 col-md-3">
+      <input type="date" name="start_date" value="{{ $start ?? request('start_date') }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-6 col-md-3">
+      <input type="date" name="end_date" value="{{ $end ?? request('end_date') }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-12 col-md-2 d-flex gap-2">
+      <button class="btn btn-outline-secondary btn-sm" aria-label="Filtrer"><i class="bi bi-funnel" aria-hidden="true"></i></button>
+      <a href="{{ route('sorties.index') }}" class="btn btn-light btn-sm">Clear</a>
+    </div>
   </form>
 </div>
 

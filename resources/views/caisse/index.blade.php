@@ -10,8 +10,8 @@
 </div>
 
 <form method="GET" class="row g-2 mb-3">
-  <div class="col-md-3">
-    <input type="date" name="start_date" class="form-control" value="{{ $start ?? '' }}" placeholder="Date début">
+  <div class="col-md-2">
+    <button class="btn btn-primary w-100" aria-label="Filtrer"><i class="bi bi-funnel" aria-hidden="true"></i></button>
   </div>
   <div class="col-md-3">
     <input type="date" name="end_date" class="form-control" value="{{ $end ?? '' }}" placeholder="Date fin">

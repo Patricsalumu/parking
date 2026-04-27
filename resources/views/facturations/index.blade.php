@@ -4,22 +4,31 @@
 <div class="mb-3">
   <h3>Facturations</h3>
 </div>
-<div class="d-flex justify-content-between align-items-center mb-3">
-  <div class="d-flex">
-    <input id="indexSearchPlaque" class="form-control form-control-sm me-2" placeholder="Rechercher plaque et créer facture">
-    <button id="indexBtnSearch" class="btn btn-primary btn-sm me-3">Chercher & Créer</button>
-    <form method="GET" class="d-flex">
-      <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm me-2" placeholder="Recherche (plaque / client / numéro)">
-      <input type="date" name="start_date" value="{{ $start ?? request('start_date') }}" class="form-control form-control-sm me-2">
-      <input type="date" name="end_date" value="{{ $end ?? request('end_date') }}" class="form-control form-control-sm me-2">
-      <button class="btn btn-outline-secondary btn-sm me-2">Filtrer</button>
-      <a href="{{ route('facturations.index') }}" class="btn btn-light btn-sm">Clear</a>
-    </form>
-  </div>
-  @php $qs = http_build_query(request()->except('page')) @endphp
-  <div class="ms-3">
-    <a href="{{ route('facturations.export.csv') }}?{{ $qs }}" class="btn btn-outline-success btn-sm">Export CSV</a>
-    <a href="{{ route('facturations.export.pdf') }}?{{ $qs }}" class="btn btn-outline-primary btn-sm">Export PDF</a>
+<div class="mb-3">
+  <div class="row g-2 align-items-center">
+    <div class="col-12 col-md-8">
+      <form method="GET" class="row g-2 align-items-center">
+        <div class="col-12 col-md-5 d-flex">
+          <input id="indexSearchPlaque" name="q" class="form-control form-control-sm me-2" value="{{ request('q') }}" placeholder="Recherche (plaque / client / numéro)">
+          <button id="indexBtnSearch" type="button" class="btn btn-primary btn-sm" aria-label="Chercher"><i class="bi bi-search" aria-hidden="true"></i></button>
+        </div>
+        <div class="col-6 col-md-3">
+          <input type="date" name="start_date" value="{{ $start ?? request('start_date') }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-6 col-md-2">
+          <input type="date" name="end_date" value="{{ $end ?? request('end_date') }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+          <button class="btn btn-outline-secondary btn-sm" aria-label="Filtrer"><i class="bi bi-funnel" aria-hidden="true"></i></button>
+          <a href="{{ route('facturations.index') }}" class="btn btn-light btn-sm">Clear</a>
+        </div>
+      </form>
+    </div>
+    <div class="col-12 col-md-4 text-md-end">
+      @php $qs = http_build_query(request()->except('page')) @endphp
+      <a href="{{ route('facturations.export.csv') }}?{{ $qs }}" class="btn btn-outline-success btn-sm me-2">Export CSV</a>
+      <a href="{{ route('facturations.export.pdf') }}?{{ $qs }}" class="btn btn-outline-primary btn-sm">Export PDF</a>
+    </div>
   </div>
 </div>
 <div class="mb-3">

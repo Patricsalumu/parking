@@ -33,7 +33,7 @@
       <input type="date" name="end_date" class="form-control" value="{{ request('end_date', \Carbon\Carbon::today()->format('Y-m-d')) }}">
     </div>
     <div class="col-md-1 d-grid">
-      <button class="btn btn-secondary">Filter</button>
+      <button class="btn btn-secondary" aria-label="Filtrer"><i class="bi bi-funnel" aria-hidden="true"></i></button>
     </div>
   </div>
   <div class="mt-2 d-flex gap-2">
