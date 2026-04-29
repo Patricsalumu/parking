@@ -86,7 +86,7 @@
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('clients.index') }}"><i class="bi bi-people me-2"></i>Clients</a></li>
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('vehicules.index') }}"><i class="bi bi-truck me-2"></i>Véhicules</a></li>
               <li class="nav-item">
-                <a class="nav-link d-flex align-items-center" data-bs-toggle="collapse" href="#comptaMenu" role="button" aria-expanded="false" aria-controls="comptaMenu"><i class="bi bi-journal-text me-2"></i>Comptabilité</a>
+                <a class="nav-link d-flex align-items-center justify-content-start" data-bs-toggle="collapse" href="#comptaMenu" role="button" aria-expanded="false" aria-controls="comptaMenu"><i class="bi bi-journal-text me-2"></i>Comptabilité</a>
                 <div class="collapse" id="comptaMenu">
                   <ul class="nav flex-column ms-2">
                     <li class="nav-item"><a class="nav-link" href="{{ route('journal_comptes.index') ?? '#' }}">Journal</a></li>
@@ -242,17 +242,21 @@
           <a class="list-group-item list-group-item-action" href="{{ route('clients.index') }}"><i class="bi bi-people me-2"></i>Clients</a>
           <a class="list-group-item list-group-item-action" href="{{ route('vehicules.index') }}"><i class="bi bi-truck me-2"></i>Véhicules</a>
           <div class="list-group-item">
-            <a class="d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#mobileCompta" role="button" aria-expanded="false" aria-controls="mobileCompta">Comptabilité <i class="bi bi-chevron-down"></i></a>
+            <a class="d-flex align-items-center justify-content-start" data-bs-toggle="collapse" href="#mobileCompta" role="button" aria-expanded="false" aria-controls="mobileCompta"><i class="bi bi-journal-text me-2"></i>Comptabilité <span class="ms-auto"><i class="bi bi-chevron-down"></i></span></a>
             <div class="collapse mt-2" id="mobileCompta">
-              <a class="d-block ms-3" href="{{ route('journal_comptes.index') ?? '#' }}">Journal</a>
-              <a class="d-block ms-3" href="{{ route('journal_comptes.grand_index') }}">Grand Livre</a>
-              <a class="d-block ms-3" href="{{ route('journal_comptes.balances') }}">Balances</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.index') ?? '#' }}"><i class="bi bi-journal-bookmark me-2"></i>Journal</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.grand_index') }}"><i class="bi bi-book me-2"></i>Grand Livre</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.balances') }}"><i class="bi bi-list-check me-2"></i>Balances</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.compte_resultat') }}"><i class="bi bi-graph-up me-2"></i>Compte de Résultat</a>
+              <a class="d-block ms-3" href="{{ route('journal_comptes.bilan') }}"><i class="bi bi-table me-2"></i>Bilan</a>
+              <a class="d-block ms-3" href="{{ route('comptes.index') }}"><i class="bi bi-bookmarks me-2"></i>Comptes</a>
+              <a class="d-block ms-3" href="{{ route('classes.index') }}"><i class="bi bi-tags me-2"></i>Classes</a>
             </div>
           </div>
           @if(auth()->user() && auth()->user()->role === 'superadmin')
-            <a class="list-group-item list-group-item-action" href="{{ route('users.index') }}">Utilisateurs</a>
-            <a class="list-group-item list-group-item-action" href="{{ route('categories.index') }}">Catégories</a>
-            <a class="list-group-item list-group-item-action" href="{{ route('settings.entreprise') }}">Entreprise</a>
+            <a class="list-group-item list-group-item-action" href="{{ route('users.index') }}"><i class="bi bi-person-gear me-2"></i>Utilisateurs</a>
+            <a class="list-group-item list-group-item-action" href="{{ route('categories.index') }}"><i class="bi bi-tags me-2"></i>Catégories</a>
+            <a class="list-group-item list-group-item-action" href="{{ route('settings.entreprise') }}"><i class="bi bi-building me-2"></i>Entreprise</a>
           @endif
           
           <div class="list-group-item mt-2">
@@ -270,12 +274,47 @@
         try{
           const off = document.getElementById('sidebarOffcanvas');
           if(!off) return;
+          // Close offcanvas only for real navigation links (href not starting with '#')
           const items = off.querySelectorAll('.list-group-item');
-          items.forEach(el => el.addEventListener('click', function(){
+          items.forEach(el => el.addEventListener('click', function(ev){
+            try {
+              const anchor = ev.target.closest('a');
+              if (anchor) {
+                const href = anchor.getAttribute('href') || '';
+                const isCollapse = anchor.dataset && (anchor.dataset.bsToggle === 'collapse' || href.startsWith('#'));
+                if (isCollapse) {
+                  // do not hide offcanvas when toggling collapse menus
+                  return;
+                }
+              }
+            } catch(e) {
+              // ignore and fallback to hide
+            }
             const bs = bootstrap.Offcanvas.getInstance(off) || new bootstrap.Offcanvas(off);
             bs.hide();
           }));
         }catch(e){console.error(e)}
+      });
+    </script>
+    <script>
+      // Prevent full-page navigation when clicking collapse toggles (desktop and mobile)
+      document.addEventListener('DOMContentLoaded', function(){
+        try{
+          const toggles = document.querySelectorAll('[data-bs-toggle="collapse"]');
+          toggles.forEach(a => {
+            a.addEventListener('click', function(ev){
+              // avoid link navigation
+              ev.preventDefault();
+              const selector = a.getAttribute('href') || a.dataset.bsTarget;
+              if(!selector) return;
+              const target = document.querySelector(selector);
+              if(!target) return;
+              // toggle collapse via Bootstrap API
+              const instance = bootstrap.Collapse.getOrCreateInstance(target);
+              instance.toggle();
+            });
+          });
+        } catch(e){ console.error('collapse-toggle-fix', e); }
       });
     </script>
     @stack('scripts')
