@@ -191,12 +191,15 @@ class SortieController extends Controller
 
         $entree->date_sortie = Carbon::now();
         $entree->sortie_user_id = auth()->id();
+        // mark as sortie
+        $entree->sortie = 1;
         $entree->save();
         if ($request->wantsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
                 'date_sortie' => $entree->date_sortie->toDateTimeString(),
                 'sortie_user' => auth()->user()->name,
+                'sortie' => $entree->sortie,
             ]);
         }
         return redirect()->route('sorties.index')->with('success','Sortie enregistrée');
