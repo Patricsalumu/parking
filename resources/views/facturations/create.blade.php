@@ -152,6 +152,7 @@ function doPlaqueLookup(plaque) {
         // store current duration and entry date for client-side rule display
         window._currentDuration = dur;
         window._currentEntryDate = e.date_entree;
+        window._hasExistingFacturation = !!data.facturation;
         if (typeof showBillingAlerts === 'function') showBillingAlerts();
         if (typeof computeTotal === 'function') computeTotal();
 
@@ -349,8 +350,13 @@ function computeTotal() {
   // clamp montant_paye to not exceed net
   const payEl = document.getElementById('input_paye');
   if (payEl) {
-    let pay = Number(payEl.value) || 0;
-    if (pay > net) pay = net;
+    let pay;
+    if (!window._hasExistingFacturation) {
+      pay = net;
+    } else {
+      pay = Number(payEl.value) || 0;
+      if (pay > net) pay = net;
+    }
     payEl.value = pay.toFixed(2);
     document.getElementById('input_reste').value = (net - pay).toFixed(2);
   }
