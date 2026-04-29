@@ -93,9 +93,9 @@
         </td>
         <td>{{ $f->updated_at ? format_dt($f->updated_at) : ($f->created_at ? format_dt($f->created_at) : '—') }}</td>
         <td>
-          <button class="btn btn-sm btn-success btn-pay" data-id="{{ $f->id }}" data-balance="{{ $f->montant_total - $f->montant_paye }}">Payer</button>
+          <!-- <button class="btn btn-sm btn-success btn-pay" data-id="{{ $f->id }}" data-balance="{{ $f->montant_total - $f->montant_paye }}">Payer</button> -->
           <a href="{{ route('facturations.print', $f) }}" class="btn btn-sm btn-primary">Imprimer</a>
-          <a href="{{ route('facturations.show', $f) }}" class="btn btn-sm btn-outline-secondary">View</a>
+          <a href="{{ route('facturations.show', $f) }}" class="btn btn-sm btn-outline-secondary">Détails</a>
         </td>
       </tr>
     @endforeach

@@ -38,7 +38,7 @@ class FacturationController extends Controller
             if ($end) $query->whereDate('created_at', '<=', $end);
         }
 
-        $facturations = $query->orderBy('numero','asc')->paginate(15);
+        $facturations = $query->orderBy('numero','asc')->paginate(50);
         $facturations->appends(request()->all());
 
         // compute totals for current filters (not just page)

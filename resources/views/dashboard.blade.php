@@ -59,9 +59,9 @@
     <div class="col-sm-6 col-md-4">
       <div class="card quick-card shadow-sm">
         <div class="card-body">
-          <h6 class="card-title">Véhicules</h6>
+          <h6 class="card-title">Stocks</h6>
           <h2 class="mb-0">{{ \App\Models\Entree::whereNull('date_sortie')->count() }}</h2>
-          <small class="text-muted">Véhicules actuellement présents</small>
+          <small class="text-muted">Véhicules présents dans le parking</small>
         </div>
       </div>
     </div>

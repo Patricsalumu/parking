@@ -53,7 +53,7 @@ class EntreeController extends Controller
             }
         }
 
-        $entrees = $query->orderBy('numero','asc')->paginate(15);
+        $entrees = $query->orderBy('numero','asc')->paginate(50);
         $entrees->appends(request()->all());
         $clients = Client::all();
         $users = \App\Models\User::all();

@@ -68,7 +68,7 @@
     </div>
     <div class="mb-3">
       <label class="form-label">Montant payé</label>
-      <input id="input_paye" type="number" step="0.01" min="0" name="montant_paye" class="form-control" value="0">
+      <input id="input_paye" type="number" step="0.01" min="0" name="montant_paye" class="form-control" value="0" readonly>
     </div>
     <div class="mb-3">
       <label class="form-label">Reste à payer</label>
