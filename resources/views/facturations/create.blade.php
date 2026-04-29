@@ -62,6 +62,10 @@
       <label class="form-label">Net à payer</label>
       <input id="input_net" type="text" class="form-control" readonly>
     </div>
+    <div class="mb-3" id="div_deja_paye" style="display:none">
+      <label class="form-label">Déjà payé</label>
+      <input id="input_deja_paye" type="text" class="form-control" readonly>
+    </div>
     <div class="mb-3">
       <label class="form-label">Montant payé</label>
       <input id="input_paye" type="number" step="0.01" min="0" name="montant_paye" class="form-control" value="0">
@@ -149,42 +153,39 @@ function doPlaqueLookup(plaque) {
         const submitBtn = document.querySelector('#factForm button[type=submit]');
         const entreeSortieFlag = (typeof e.sortie !== 'undefined') ? !!e.sortie : !!data.entree_closed;
         if (submitBtn) submitBtn.disabled = entreeSortieFlag;
-        // store current duration and entry date for client-side rule display
+        // store current duration, entry date and existing payment for client-side rule display
         window._currentDuration = dur;
         window._currentEntryDate = e.date_entree;
         window._hasExistingFacturation = !!data.facturation;
-        if (typeof showBillingAlerts === 'function') showBillingAlerts();
-        if (typeof computeTotal === 'function') computeTotal();
+        window._dejaPayé = data.facturation ? Number(data.facturation.montant_paye ?? 0) : 0;
+        // show/hide and populate the "Déjà payé" field
+        const dejaDiv = document.getElementById('div_deja_paye');
+        if (dejaDiv) {
+          if (window._dejaPayé > 0) {
+            dejaDiv.style.display = '';
+            document.getElementById('input_deja_paye').value = window._dejaPayé.toFixed(2);
+          } else {
+            dejaDiv.style.display = 'none';
+            document.getElementById('input_deja_paye').value = '0';
+          }
+        }
 
-        // if an existing facture exists, prefill and lock reduction and montant_paye
-      if (data.facturation) {
-        const f = data.facturation;
-        document.getElementById('input_reduction').value = f.reduction ?? 0;
-        document.getElementById('input_reduction').disabled = true;
-        // montant_paye should remain editable unless the entree is closed or facture has a payment date
-        document.getElementById('input_paye').value = f.montant_paye ?? 0;
-        // prefer explicit boolean `entree.sortie` when present, else fallback to payload flag
-        // decide closed state from explicit `entree.sortie` if present
-        const entreeClosed = (data.entree && typeof data.entree.sortie !== 'undefined') ? !!data.entree.sortie : !!data.entree_closed;
-        // According to requirement: button should be locked only when `sortie` is 1; allow editing otherwise
-        document.getElementById('input_paye').disabled = entreeClosed;
-          // show who created the facture
+        // if an existing facture exists, prefill reduction and lock it, then recompute
+        if (data.facturation) {
+          const f = data.facturation;
+          document.getElementById('input_reduction').value = f.reduction ?? 0;
+          document.getElementById('input_reduction').disabled = true;
+          const entreeClosed = (data.entree && typeof data.entree.sortie !== 'undefined') ? !!data.entree.sortie : !!data.entree_closed;
+          document.getElementById('input_paye').disabled = entreeClosed;
           document.getElementById('r_fact_user').textContent = f.user_name || '';
-          // compute total from category price and days, but if fact had montant_total, prefer that for display
-          document.getElementById('input_total').value = (f.montant_total ?? '').toString();
-          const net = (f.montant_total ?? 0);
-          document.getElementById('input_net').value = Number(net).toFixed(2);
-          document.getElementById('input_reste').value = (Number(net) - Number(f.montant_paye ?? 0)).toFixed(2);
-          // store current duration and entry date for client-side rule display
-          window._currentDuration = dur;
-          window._currentEntryDate = e.date_entree;
           if (typeof showBillingAlerts === 'function') showBillingAlerts();
           if (typeof computeTotal === 'function') computeTotal();
-            // lock submit only when entree is closed (sortie==1)
-            const submitBtn = document.querySelector('#factForm button[type=submit]');
-            if (submitBtn) submitBtn.disabled = entreeClosed;
+          const submitBtnF = document.querySelector('#factForm button[type=submit]');
+          if (submitBtnF) submitBtnF.disabled = entreeClosed;
         } else {
           document.getElementById('r_fact_user').textContent = '';
+          if (typeof showBillingAlerts === 'function') showBillingAlerts();
+          if (typeof computeTotal === 'function') computeTotal();
         }
     });
 }
@@ -347,18 +348,19 @@ function computeTotal() {
   const net = Math.max(0, total - red);
   document.getElementById('input_total').value = total.toFixed(2);
   document.getElementById('input_net').value = net.toFixed(2);
-  // clamp montant_paye to not exceed net
+  // pre-fill montant_paye: for new facture = net; for refacturation = net - dejaPayé
   const payEl = document.getElementById('input_paye');
   if (payEl) {
+    const dejaPayé = window._hasExistingFacturation ? (window._dejaPayé || 0) : 0;
+    const maxPay = Math.max(0, net - dejaPayé);
     let pay;
-    if (!window._hasExistingFacturation) {
-      pay = net;
+    if (window._hasExistingFacturation) {
+      pay = maxPay;
     } else {
-      pay = Number(payEl.value) || 0;
-      if (pay > net) pay = net;
+      pay = net;
     }
     payEl.value = pay.toFixed(2);
-    document.getElementById('input_reste').value = (net - pay).toFixed(2);
+    document.getElementById('input_reste').value = Math.max(0, net - dejaPayé - pay).toFixed(2);
   }
   if (typeof showBillingAlerts === 'function') showBillingAlerts();
 }
@@ -401,10 +403,12 @@ document.getElementById('categorie_id').addEventListener('change', function(){
 const payEl = document.getElementById('input_paye');
 if (payEl) {
   payEl.addEventListener('input', function(){
-      const net = Number(document.getElementById('input_net').value) || 0;
-      let v = Number(this.value) || 0;
-      if (v > net) this.value = net.toFixed(2);
-      document.getElementById('input_reste').value = (net - Number(this.value || 0)).toFixed(2);
+    const net = Number(document.getElementById('input_net').value) || 0;
+    const dejaPayé = window._hasExistingFacturation ? (window._dejaPayé || 0) : 0;
+    const maxPay = Math.max(0, net - dejaPayé);
+    let v = Number(this.value) || 0;
+    if (v > maxPay) { this.value = maxPay.toFixed(2); v = maxPay; }
+    document.getElementById('input_reste').value = Math.max(0, net - dejaPayé - v).toFixed(2);
   });
 }
 </script>
