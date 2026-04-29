@@ -11,14 +11,14 @@
       <h6>Facturation</h6>
       @if($fact)
         <div><strong>Facture #</strong> {{ $fact->id }}</div>
-        <div><strong>Catégorie:</strong> {{ $fact->categorie?->nom ?? 'N/C' }}</div>
+        <div><strong>Catégorie:</strong> {{ $fact->categorie?->nom ?? $entree->categorie?->nom ?? 'N/C' }}</div>
         <div><strong>Duree (jours):</strong> {{ $fact->duree ?? $entree->durationInDays() ?? 'N/A' }}</div>
         <div><strong>Total:</strong> {{ number_format($fact->montant_total ?? 0,2) }}</div>
         <div><strong>Payé:</strong> {{ number_format($fact->montant_paye ?? 0,2) }}</div>
         <div><strong>Reste:</strong> {{ number_format( ($fact->montant_total - ($fact->montant_paye ?? 0)) ,2) }}</div>
         <div><strong>Dernière mise à jour facture:</strong> {{ $fact->updated_at ? \Carbon\Carbon::parse($fact->updated_at)->format('Y-m-d H:i') : '-' }}</div>
         @if(isset($sinceBilled) && $sinceBilled)
-          <div><strong>Depuis facturation:</strong> {{ $sinceBilled['days'] }}j {{ $sinceBilled['hours'] }}h {{ $sinceBilled['minutes'] }}m</div>
+          <div><strong>Depuis facturation:</strong> <span class="{{ $entree->date_sortie ? 'text-danger' : '' }}">{{ $sinceBilled['days'] }}j {{ $sinceBilled['hours'] }}h {{ $sinceBilled['minutes'] }}m</span></div>
         @endif
       @else
         <div class="text-danger">Aucune facture associée à cette entrée.</div>
@@ -47,14 +47,10 @@
       if(isset($fact)) {
         $factPaidOrZero = (($fact->montant_paye ?? 0) >= ($fact->montant_total ?? 0));
       }
-      // determine apurer disabled: true when no facture, or not paid, or since facturation is less than or equal to 60 minutes
+      // determine apurer disabled: enabled when facture exists and is paid (apurer will perform sortie regardless of delay)
       $apurerDisabled = true;
-      if(isset($fact) && $factPaidOrZero) {
-        if(!isset($minutesSince) || $minutesSince > 60) {
-          $apurerDisabled = false;
-        } else {
-          $apurerDisabled = true;
-        }
+      if (isset($fact) && $factPaidOrZero) {
+        $apurerDisabled = false;
       }
       // determine if confirm sortie is allowed (paid and within 1h)
       $confirmDisabled = true;
@@ -119,12 +115,82 @@ function returnToSortiesIndex(){
       <div class="modal-body">Voulez-vous vraiment apurer (mettre à jour) la facture pour permettre la sortie du véhicule <strong>{{ $entree->vehicule?->plaque }}</strong> ?</div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-        <form id="confirmApurerForm" method="POST" action="{{ route('sorties.apurer', $entree) }}" style="display:inline">
+        <form id="confirmApurerForm" method="POST" action="{{ route('sorties.apurer', $entree) }}" style="display:inline" onsubmit="submitApurerForm(event,this)">
           @csrf
-          <button class="btn btn-primary">Apurer</button>
+          <button type="submit" class="btn btn-primary">Apurer</button>
         </form>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+// Local debug: log when apurer form is submitted inside the modal
+document.addEventListener('DOMContentLoaded', function(){
+  try {
+    const f = document.getElementById('confirmApurerForm');
+    if (!f) return;
+    f.addEventListener('submit', function(e){
+      console.debug('Local: confirmApurerForm submit triggered for', this.action);
+      // disable submit button to avoid double submits
+      const btn = this.querySelector('button[type=submit]');
+      if (btn) btn.disabled = true;
+    });
+  } catch(err) { console.error('confirmApurerForm local script error', err); }
+});
+
+function submitApurerForm(e, form){
+  try {
+    e.preventDefault();
+    console.debug('Inline submitApurerForm', form.action);
+    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const btn = form.querySelector('button[type=submit]');
+    if (btn) btn.disabled = true;
+    fetch(form.action, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-TOKEN': token || '',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({})
+    }).then(r => {
+      console.debug('Inline apurer response', r.status, r.headers.get('content-type'));
+      return r.json();
+    }).then(data => {
+      console.debug('Inline apurer data', data);
+      // close modal if present
+      try { const outer = document.getElementById('sortieModal'); bootstrap.Modal.getInstance(outer)?.hide(); } catch(e){}
+      // show toast if available
+      try { if (window.showToast) window.showToast(data.message || 'Facture apurée', 'success'); } catch(e){}
+      // try to update the table row in-place (if on index page)
+      if (data && data.entree && data.entree.id) {
+        try {
+          const row = document.getElementById('entree-row-' + data.entree.id);
+          if (row) {
+            const dsCell = row.querySelector('.entree-date-sortie');
+            if (dsCell) dsCell.textContent = data.entree.date_sortie || '-';
+            const sbCell = row.querySelector('.entree-since-billed');
+            if (sbCell) {
+              sbCell.textContent = data.entree.sinceBilled || '-';
+              sbCell.classList.add('text-danger');
+            }
+            const plaqueCell = row.querySelector('.entree-plaque');
+            if (plaqueCell) plaqueCell.classList.add('text-decoration-line-through','text-muted');
+            const actionsCell = row.querySelector('.entree-actions');
+            if (actionsCell) actionsCell.innerHTML = '<button class="btn btn-sm btn-light" disabled>Déjà sorti</button>';
+          }
+        } catch(e){ console.error('Inline update row error', e); }
+      }
+      // if update not visible, reload as fallback
+      setTimeout(function(){ try { window.location.reload(); } catch(e){} }, 800);
+    }).catch(err => {
+      console.error('Inline apurer fetch error', err);
+      try { if (window.showToast) window.showToast('Erreur réseau lors de l\'apurement', 'danger'); else alert('Erreur réseau'); } catch(e){}
+      if (btn) btn.disabled = false;
+    });
+  } catch(err) { console.error('submitApurerForm error', err); }
+}
+</script>
 

@@ -4,13 +4,6 @@
 <a href="{{ route('facturations.index') }}" class="btn btn-secondary mb-2">← Retour</a>
 <h3>Facturation #{{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</h3>
 <div class="card p-3">
-  <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>
-  <p><strong>Numero Facture:</strong> {{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</p>
-  <p><strong>Véhicule - Plaque:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
-  <p><strong>Marque:</strong> {{ $facturation->entree->vehicule?->marque }}</p>
-  <p><strong>Pays:</strong> {{ $facturation->entree->vehicule?->pays }}</p>
-  <p><strong>Essieux:</strong> {{ $facturation->entree->vehicule?->essieux }}</p>
-  <p><strong>Client:</strong> {{ $facturation->entree->client?->nom }}</p>
   @php
     $fmt = function($d, $format = 'Y-m-d H:i') {
       if (!$d) return null;
@@ -19,6 +12,14 @@
       return null;
     };
   @endphp
+  <p><strong>Entrée:</strong> {{ $facturation->entree_id }}</p>
+  <p><strong>Numero Facture:</strong> {{ $facturation->numero_formatted ?? $facturation->numero ?? $facturation->id }}</p>
+  <p><strong>Date facturation:</strong> {{ $fmt($facturation->updated_at) ?? $fmt($facturation->created_at) ?? '—' }}</p>
+  <p><strong>Véhicule - Plaque:</strong> {{ $facturation->entree->vehicule?->plaque }}</p>
+  <p><strong>Marque:</strong> {{ $facturation->entree->vehicule?->marque }}</p>
+  <p><strong>Pays:</strong> {{ $facturation->entree->vehicule?->pays }}</p>
+  <p><strong>Essieux:</strong> {{ $facturation->entree->vehicule?->essieux }}</p>
+  <p><strong>Client:</strong> {{ $facturation->entree->client?->nom }}</p>
   <p><strong>Date entrée:</strong> {{ $fmt($facturation->entree->date_entree) ?? '—' }}</p>
   <p><strong>Date sortie:</strong> {{ $fmt($facturation->entree->date_sortie) ?? '—' }}</p>
   <p><strong>Durée (jours enregistrés):</strong> {{ $facturation->duree }}</p>

@@ -64,21 +64,22 @@
       <th>Date Sortie</th>
       <th>Utilisateur</th>
       <th>Facturation</th>
+      <th>Depuis facturation</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     @foreach($entrees as $e)
-    <tr>
+    <tr id="entree-row-{{ $e->id }}" data-id="{{ $e->id }}">
       <td>{{ $entrees->firstItem() + $loop->index }}</td>
-      <td>{{ $e->vehicule?->plaque }}</td>
+      <td class="entree-plaque">{{ $e->vehicule?->plaque }}</td>
       <td>{{ $e->vehicule?->compagnie ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->marque ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->pays ?? '-' }}</td>
       <td class="d-none d-md-table-cell">{{ $e->vehicule?->essieux ?? '-' }}</td>
       <td>{{ $e->client?->nom }}</td>
       <td>{{ $e->date_entree ? \Carbon\Carbon::parse($e->date_entree)->format('Y-m-d H:i') : '' }}</td>
-      <td>{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
+      <td class="entree-date-sortie">{{ $e->date_sortie ? \Carbon\Carbon::parse($e->date_sortie)->format('Y-m-d H:i') : '-' }}</td>
       <td>{{ $e->user?->name }}</td>
       <td>
         @if($e->facturation)
@@ -87,7 +88,14 @@
           <span class="text-muted">Aucune</span>
         @endif
       </td>
-      <td>
+      <td class="text-nowrap entree-since-billed {{ $e->date_sortie ? 'text-danger' : '' }}">
+        @if($e->sinceBilled)
+          {{ $e->sinceBilled['days'] }}j {{ $e->sinceBilled['hours'] }}h {{ $e->sinceBilled['minutes'] }}m
+        @else
+          -
+        @endif
+      </td>
+      <td class="entree-actions">
         <a href="{{ route('sorties.show', $e) }}" class="btn btn-sm btn-outline-secondary me-1">Voir</a>
         @php
           $fact = $e->facturation;
@@ -117,6 +125,9 @@
     </div>
   </div>
 </div>
+
+<!-- Toast container for notifications -->
+<div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index:1080"></div>
 
 @push('scripts')
 <script>
@@ -148,31 +159,89 @@ document.addEventListener('DOMContentLoaded', function(){
     // delegate submit for confirmSortieForm inside loaded modal content
     document.getElementById('sortieModalContent').addEventListener('submit', function(e){
       const form = e.target;
-      if (form && form.id === 'confirmSortieForm') {
+        if (form && form.id === 'confirmSortieForm') {
         e.preventDefault();
         const url = form.action;
         const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        console.debug('confirmSortieForm submit', url);
         fetch(url, {
           method: 'PUT',
           headers: {
             'X-CSRF-TOKEN': token || '',
+            'X-Requested-With': 'XMLHttpRequest',
             'Accept': 'application/json',
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({})
-        }).then(r => r.json()).then(data => {
+        }).then(r => {
+          console.debug('confirmSortieForm response status', r.status, r.headers.get('content-type'));
+          return r.json();
+        }).then(data => {
+          console.debug('confirmSortieForm data', data);
           if (data && data.success) {
-            // close outer modal and inner modal
             const outer = document.getElementById('sortieModal');
             bootstrap.Modal.getInstance(outer)?.hide();
-            // refresh page to reflect sortie
             window.location.reload();
           } else {
-            alert(data?.message || 'Erreur lors de la sortie');
+            showToast(data?.message || 'Erreur lors de la sortie', 'danger');
           }
         }).catch(err => {
           console.error('Sortie confirm error', err);
-          alert('Erreur réseau lors de la confirmation');
+          showToast('Erreur réseau lors de la confirmation', 'danger');
+        });
+      }
+      if (form && form.id === 'confirmApurerForm') {
+        e.preventDefault();
+        const url = form.action;
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        console.debug('confirmApurerForm submit', url);
+        fetch(url, {
+          method: 'POST',
+          headers: {
+            'X-CSRF-TOKEN': token || '',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({})
+        }).then(r => {
+          console.debug('confirmApurerForm response status', r.status, r.headers.get('content-type'));
+          return r.json();
+        }).then(data => {
+          console.debug('confirmApurerForm data', data);
+          if (data && data.success) {
+            const outer = document.getElementById('sortieModal');
+            bootstrap.Modal.getInstance(outer)?.hide();
+            showToast(data.message || 'Facture apurée', 'success');
+            // update table row in-place
+            if (data.entree && data.entree.id) {
+              const row = document.getElementById('entree-row-' + data.entree.id);
+              if (row) {
+                // update date_sortie cell
+                const dsCell = row.querySelector('.entree-date-sortie');
+                if (dsCell) dsCell.textContent = data.entree.date_sortie || '-';
+                // update since billed
+                const sbCell = row.querySelector('.entree-since-billed');
+                if (sbCell) {
+                  sbCell.textContent = data.entree.sinceBilled || '-';
+                  sbCell.classList.add('text-danger');
+                }
+                // mark plaque as muted/struck
+                const plaqueCell = row.querySelector('.entree-plaque');
+                if (plaqueCell) plaqueCell.classList.add('text-decoration-line-through','text-muted');
+                // replace actions with disabled "Déjà sorti"
+                const actionsCell = row.querySelector('.entree-actions');
+                if (actionsCell) {
+                  actionsCell.innerHTML = '<button class="btn btn-sm btn-light" disabled>Déjà sorti</button>';
+                }
+              }
+            }
+          } else {
+            showToast(data?.message || 'Erreur lors de l\'apurement', 'danger');
+          }
+        }).catch(err => {
+          console.error('Apurer error', err);
+          showToast('Erreur réseau lors de l\'apurement', 'danger');
         });
       }
     });
@@ -180,6 +249,27 @@ document.addEventListener('DOMContentLoaded', function(){
     console.error('Sorties script error:', err);
   }
 });
+
+    function showToast(message, type = 'info'){
+      try {
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const bgClass = type === 'success' ? 'bg-success text-white' : (type === 'danger' ? 'bg-danger text-white' : 'bg-secondary text-white');
+        const toastId = 'toast-'+Date.now();
+        const toastHtml = `
+          <div id="${toastId}" class="toast ${bgClass}" role="alert" aria-live="assertive" aria-atomic="true" data-bs-delay="1200">
+            <div class="d-flex">
+              <div class="toast-body">${message}</div>
+              <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+          </div>`;
+        container.insertAdjacentHTML('beforeend', toastHtml);
+        const el = document.getElementById(toastId);
+        const bsToast = new bootstrap.Toast(el);
+        el.addEventListener('hidden.bs.toast', () => { el.remove(); });
+        bsToast.show();
+      } catch(e) { console.error('showToast error', e); }
+    }
 </script>
 @endpush
 
