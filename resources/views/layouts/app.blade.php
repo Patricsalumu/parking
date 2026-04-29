@@ -88,6 +88,7 @@
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('entrees.index') }}"><i class="bi bi-box-arrow-in-right me-2"></i>Entrées</a></li>
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('facturations.index') }}"><i class="bi bi-receipt me-2"></i>Facturation</a></li>
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('sorties.index') }}"><i class="bi bi-box-arrow-right me-2"></i>Sorties</a></li>
+              <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('stocks_physique.index') }}"><i class="bi bi-layers me-2"></i>Stocks</a></li>
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('caisse.index') }}"><i class="bi bi-cash-stack me-2"></i>Caisse</a></li>
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('clients.index') }}"><i class="bi bi-people me-2"></i>Clients</a></li>
               <li class="nav-item"><a class="nav-link d-flex align-items-center" href="{{ route('vehicules.index') }}"><i class="bi bi-truck me-2"></i>Véhicules</a></li>
@@ -296,6 +297,7 @@
           <a class="list-group-item list-group-item-action" href="{{ route('entrees.index') }}"><i class="bi bi-box-arrow-in-right me-2"></i>Entrées</a>
           <a class="list-group-item list-group-item-action" href="{{ route('facturations.index') }}"><i class="bi bi-receipt me-2"></i>Facturation</a>
           <a class="list-group-item list-group-item-action" href="{{ route('sorties.index') }}"><i class="bi bi-box-arrow-right me-2"></i>Sorties</a>
+          <a class="list-group-item list-group-item-action" href="{{ route('stocks_physique.index') }}"><i class="bi bi-layers me-2"></i>Stocks</a>
           <a class="list-group-item list-group-item-action" href="{{ route('caisse.index') }}"><i class="bi bi-cash-stack me-2"></i>Caisse</a>
           <a class="list-group-item list-group-item-action" href="{{ route('clients.index') }}"><i class="bi bi-people me-2"></i>Clients</a>
           <a class="list-group-item list-group-item-action" href="{{ route('vehicules.index') }}"><i class="bi bi-truck me-2"></i>Véhicules</a>
